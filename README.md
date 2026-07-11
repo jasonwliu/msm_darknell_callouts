@@ -58,6 +58,11 @@ Upon launching the application:
    - Open MapleStory M (configured in windowed or borderless windowed mode).
    - In the helper app, click **Calibrate Region**.
    - Your screen will dim. Click and drag a tight box enclosing the **entire boss name and HP bar container** at the top center of your game window.
+     
+     **Example of a correct calibration region selection:**
+     
+     ![HP Bar Calibration Example](hp_bar_example.png)
+     
    - Release the mouse. The coordinates will save persistently to `config.json`.
 4. **Lock & Play**:
    - Press `Ctrl+Shift+U` to lock the overlay into **HUD Mode**.
