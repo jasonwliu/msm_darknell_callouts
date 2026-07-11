@@ -1,0 +1,19 @@
+{
+    "hotkey": "ctrl+shift+u",
+    "ocr_region": [
+        602,
+        308,
+        386,
+        53
+    ],
+    "audio_device_index": 1,
+    "window_position": [
+        1074,
+        430
+    ],
+    "filled_hp_color": [
+        42,
+        19,
+        47
+    ]
+}
