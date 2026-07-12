@@ -24,6 +24,14 @@ from overlay import OverlayWindow, CalibrationWindow
 from voice import VoiceThread
 from screen_tracker import ScreenTrackerThread
 
+def get_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
 # Thread-safe helper to receive global hotkey events in PyQt main thread
 class HotkeyReceiver(QObject):
     hotkey_pressed = pyqtSignal()
@@ -253,7 +261,7 @@ class MainApp:
             self.tracker_thread.wait()
 
     def setup_tray_icon(self):
-        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon = QSystemTrayIcon()
         self.tray_icon.setIcon(self.create_tray_icon())
         self.tray_icon.setToolTip("Darknell Callouts Helper")
         
@@ -283,6 +291,10 @@ class MainApp:
             self.toggle_overlay_interaction()
 
     def create_tray_icon(self):
+        icon_path = get_resource_path("darknell_icon.png")
+        if os.path.exists(icon_path):
+            return QIcon(icon_path)
+            
         from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QPen
         from PyQt6.QtCore import Qt
         pixmap = QPixmap(64, 64)
