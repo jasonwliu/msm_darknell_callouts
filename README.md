@@ -33,7 +33,7 @@ A real-time, transparent desktop HUD overlay designed to assist MapleStory M pla
 
 1. **Clone or Download** this repository to a folder on your local machine:
    ```bash
-   git clone https://github.com/<your-username>/darknell_callouts.git
+   git clone https://github.com/jasonwliu/darknell_callouts.git
    cd darknell_callouts
    ```
 
