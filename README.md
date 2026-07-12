@@ -65,22 +65,31 @@ Upon launching the application:
 3. **Calibrate HP Region**:
    - Open MapleStory M (configured in windowed or borderless windowed mode).
    - In the helper app, click **Calibrate Region**.
-   - Your screen will dim. Click and drag a box enclosing the **entire boss name and HP bar container** at the top center of your game window. You should drag the selection box to cover the entire purple nameplate border and the green HP bar directly below it (as shown in the `hp_bar_example.png` diagram below). Extra margin padding is handled automatically by the nameplate detection scanner.
+   - Your screen will dim. Click and drag a box enclosing the **entire boss name and HP bar container** at the top center of your game window. You should drag the selection box to cover the entire purple nameplate border and the green HP bar directly below it (as shown in the `hp_bar_clean.png` diagram below). Extra margin padding is handled automatically by the nameplate detection scanner.
      
      **Example of a correct calibration region selection:**
      
-     ![HP Bar Calibration Example](hp_bar_example.png)
-     
-     The active HP tracker scans vertical columns at specific percentage offsets of the nameplate width to divide the fight into four distinct phases:
-     - **Phase 1 (100% - 75% HP)**: Initial phase.
-     - **Phase 2 (75% - 65% HP)**: Starts once the green HP drops past **75%** (positioned exactly in the `"e"` in `"Darknell"`).
-     - **Phase 3 (65% - 35% HP)**: Starts once the green HP drops past **65%** (positioned exactly between the `"a"` and `"r"` in `"Darknell"`).
-     - **Phase 4 (35% - 0% HP)**: Starts once the green HP drops past **35%** (positioned exactly in the `"d"` in `"Guard"`).
+     ![HP Bar Calibration Example](hp_bar_clean.png)
      
    - Release the mouse. The coordinates will save persistently to `config.json`.
 4. **Lock & Play**:
    - Press `Ctrl+Shift+U` to lock the overlay into **HUD Mode**.
    - The configuration controls will hide, the background will become a translucent dark panel, and clicks will pass straight through the HUD to the game window.
+
+---
+
+## 📊 HP Phase Transitions
+
+The active HP tracker automatically tracks boss HP and transitions phases. It does this by checking green pixel density at specific percentage columns of the nameplate width. 
+
+Refer to the diagram below to see exactly where the boundaries align:
+
+![HP Phase Boundaries Guide](hp_bar_example.png)
+
+- **Phase 1 (100% - 75% HP)**: Initial phase.
+- **Phase 2 (75% - 65% HP)**: Starts once the green HP drops past **75%** (positioned exactly in the `"e"` in `"Darknell"`).
+- **Phase 3 (65% - 35% HP)**: Starts once the green HP drops past **65%** (positioned exactly between the `"a"` and `"r"` in `"Darknell"`).
+- **Phase 4 (35% - 0% HP)**: Starts once the green HP drops past **35%** (positioned exactly in the `"d"` in `"Guard"`).
 
 ---
 
