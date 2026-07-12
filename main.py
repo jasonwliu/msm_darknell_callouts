@@ -78,7 +78,7 @@ class MainApp:
         
         # Instantiate GUI
         self.overlay = OverlayWindow()
-        self.overlay.update_moves(self.rotation.phase, self.rotation.get_next_moves())
+        self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
         
         # Load window geometry
         pos = self.config_data.get("window_position")
@@ -89,6 +89,8 @@ class MainApp:
         # Connect GUI controls
         self.overlay.calibrate_requested.connect(self.start_calibration)
         self.overlay.mic_changed.connect(self.update_microphone)
+        self.overlay.listener_changed.connect(self.update_listener)
+        self.overlay.audio_mode_changed.connect(self.update_audio_mode)
         self.overlay.phase_override.connect(self.manual_phase)
         self.overlay.reset_rotation.connect(self.reset_moves)
 
@@ -148,7 +150,9 @@ class MainApp:
             self.voice_thread.wait()
 
         mic_idx = self.config_data.get("audio_device_index")
-        self.voice_thread = VoiceThread(mic_idx)
+        listener_idx = self.config_data.get("listener_device_index")
+        audio_mode = self.config_data.get("audio_mode", "shotcaller")
+        self.voice_thread = VoiceThread(mic_idx, listener_idx, audio_mode)
         self.voice_thread.command_recognized.connect(self.handle_voice_command)
         self.voice_thread.status_message.connect(lambda msg: self.overlay.set_status(msg, "#88ff88"))
         self.voice_thread.error_occurred.connect(lambda err: self.overlay.set_status(err, "#ff5555"))
@@ -170,26 +174,38 @@ class MainApp:
         # Restart voice thread with new microphone selection
         self.start_voice_thread()
 
+    def update_listener(self, listener_idx):
+        self.config_data["listener_device_index"] = listener_idx
+        config.save_config(self.config_data)
+        # Restart voice thread with new listener selection
+        self.start_voice_thread()
+
+    def update_audio_mode(self, audio_mode):
+        self.config_data["audio_mode"] = audio_mode
+        config.save_config(self.config_data)
+        # Restart voice thread with new mode
+        self.start_voice_thread()
+
     def handle_voice_command(self, cmd):
         # Feed into RotationEngine
         changed, msg = self.rotation.process_voice_command(cmd)
         if changed:
-            self.overlay.update_moves(self.rotation.phase, self.rotation.get_next_moves())
+            self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
             self.overlay.set_status(msg, "#88ff88")
 
     def auto_phase_transition(self, new_phase):
         if self.rotation.set_phase(new_phase):
-            self.overlay.update_moves(self.rotation.phase, self.rotation.get_next_moves())
+            self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
             self.overlay.set_status(f"HP Boundary: Switched to Phase {new_phase}!", "#ffaa00")
 
     def manual_phase(self, phase_num):
         if self.rotation.set_phase(phase_num):
-            self.overlay.update_moves(self.rotation.phase, self.rotation.get_next_moves())
+            self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
             self.overlay.set_status(f"Set to Phase {phase_num} manually", "#ffff00")
 
     def reset_moves(self):
         self.rotation.reset()
-        self.overlay.update_moves(self.rotation.phase, self.rotation.get_next_moves())
+        self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
         self.overlay.set_status("Rotation reset", "#00ffff")
 
     def start_calibration(self):

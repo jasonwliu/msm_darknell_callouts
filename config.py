@@ -7,6 +7,8 @@ DEFAULT_CONFIG = {
     "hotkey": "ctrl+shift+u",
     "ocr_region": None,  # [x, y, width, height]
     "audio_device_index": None,
+    "listener_device_index": None,
+    "audio_mode": "shotcaller",
     "window_position": [100, 100],
     "filled_hp_color": [50, 210, 50]  # Default green HP color for Maplestory M
 }

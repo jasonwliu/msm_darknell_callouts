@@ -6,12 +6,18 @@ A real-time, transparent desktop HUD overlay designed to assist MapleStory M pla
 
 ## ✨ Features
 
-- **🎮 Glassmorphic HUD Overlay**: A floating, stays-on-top, click-through overlay showing the next 3 moves in the boss's rotation. Backed by a semi-transparent panel for legibility against bright skill animations.
-- **🎙️ Offline Voice Commands (Vosk)**: Hands-free sequence progression. Say moves out loud to advance, reset, or change phases. Configured with a localized speech vocabulary for sub-200ms latency.
-- **⚡ Stun-Skip Lookahead**: When Darknell gets stunned and skips moves, speak his current move out of sequence. The engine immediately scans ahead (up to 3 moves) and advances the HUD.
-- **🔍 Active HP Tracking**: Auto-detects boss phases (Phase 1, 2, 3, 4) by sampling the boss's HP bar width.
+- **🎮 Glassmorphic HUD Overlay**: A floating, stays-on-top, click-through overlay displaying the full scrolling rotation, locking the next expected move at the very top (highlighted in cyan with a `➔` pointer). Backed by a semi-transparent panel for legibility.
+- **🎙️ Offline Voice Commands (Vosk)**: Hands-free sequence progression. Toggles between:
+  - **Shotcaller Mode**: Listens to microphone input (for players making the callouts).
+  - **Listener Mode**: Listens to speaker loopback input (WASAPI loopback) to track a teammate's callouts without recording your own microphone, avoiding double-skips.
+- **⚡ Stun-Skip & Sequence Resync**:
+  - **Stun Skip**: When Darknell gets stunned and skips moves, say `"stun"` or `"stunned"` followed by the move he is performing to skip. Normal out-of-order commands are ignored to prevent noise-based skips.
+  - **Sequence Sync**: Say a multi-move pattern (e.g. `"Fly into Meteor"`) to perform a phase-wide lookahead scan, resynchronizing the rotation engine automatically.
+- **🔍 Active HP Tracking**: Auto-detects boss phases (Phase 1, 2, 3, 4) by sampling the HP bar width.
+  - **Auto-Cropping Leniency**: Automatically finds the exact bounds of the nameplate box within the calibrated region, absorbing user margin drawing errors.
   - **No-OCR Green Density Scanning**: Runs a vertical pixel-density hue scanner that is immune to centered text overlays ("Guard Captain Darknell"), resolution scaling, or accidental click calibrations.
   - **Lobby/Death Detection**: Detects if you are in a lobby, loading screen, or town, and pauses tracking automatically until the green HP bar appears.
+  - **Phase Transition Boundaries**: Checked dynamically at 31% (between "ar" in Guard), 65% (between "ar" in Darknell), and 73% (between "ne" in Darknell) of the nameplate width (visualized on the calibration image in the Setup section below).
 - **⌨️ System-Wide Global Hotkey**: Press `Ctrl+Shift+U` at any time (even while in-game) to toggle between **HUD Mode** (click-through, stays-on-top) and **Setup Mode** (draggable, buttons and audio configurations active).
 
 ---
@@ -36,7 +42,7 @@ A real-time, transparent desktop HUD overlay designed to assist MapleStory M pla
    ```bash
    pip install -r requirements.txt
    ```
-   *Required packages: `PyQt6`, `sounddevice`, `vosk`, `pillow`, `numpy`, `keyboard`, `winocr`.*
+   *Required packages: `PyQt6`, `sounddevice`, `pyaudiowpatch`, `vosk`, `pillow`, `numpy`, `keyboard`, `winocr`.*
 
 3. **Vosk Speech Model (Automatic)**:
    On first startup, if the Vosk speech recognition model directory is missing, the application will automatically download the lightweight English voice model (`model-en-us-0.22-lgroup` or similar) in the background.
@@ -53,11 +59,13 @@ Double-click the **`run_helper.bat`** file located in the project folder. This o
 
 Upon launching the application:
 1. The app starts in **Setup Mode** (opaque container box with borders and controls).
-2. **Select Microphone**: Choose your input microphone from the audio device dropdown.
+2. **Select Mode & Audio Device**:
+   - Choose between **Shotcaller (Mic)** (to input commands via your microphone) or **Listener (Loopback)** (to register team callouts directly from your speaker output).
+   - Select your corresponding audio device from the dropdown.
 3. **Calibrate HP Region**:
    - Open MapleStory M (configured in windowed or borderless windowed mode).
    - In the helper app, click **Calibrate Region**.
-   - Your screen will dim. Click and drag a tight box enclosing the **entire boss name and HP bar container** at the top center of your game window.
+   - Your screen will dim. Click and drag a box enclosing the **entire boss name and HP bar container** at the top center of your game window. Extra margin padding is handled automatically by the nameplate detection scanner.
      
      **Example of a correct calibration region selection:**
      
@@ -80,11 +88,12 @@ Upon launching the application:
 | **"Dash"** | Advance move | Confirms Darknell completed a Dash. |
 | **"Fly"** | Advance move | Confirms Darknell completed a Fly. |
 | **"Charge"** | Advance move | Confirms Darknell completed a Charge (P2/P3/P4). |
-| **[Expected Move]** | Stun skip | If Darknell skips 1–3 moves due to a stun, speak the current move he is performing. The HUD matches the command and skips ahead. |
-| **"Phase One"** | Manual Override | Sets the HUD sequence to Phase 1. |
-| **"Phase Two"** | Manual Override | Sets the HUD sequence to Phase 2. |
-| **"Phase Three"** | Manual Override | Sets the HUD sequence to Phase 3. |
-| **"Phase Four"** | Manual Override | Sets the HUD sequence to Phase 4. |
+| **"Stun [Move]"** or **"Stunned [Move]"** | Stun Skip | Skips forward in the rotation to the spoken move (e.g. `"Stun Push"`). Out-of-order calls without this prefix are ignored to prevent noise skips. |
+| **[Pattern Sequence]** | Sequence Sync | Speak a sequence of 2-3 moves (e.g. `"Fly into Meteor"`) to auto-sync the tracker to that position in the rotation. |
+| **"Phase One"** / **"P1"** | Manual Override | Sets the HUD sequence to Phase 1. |
+| **"Phase Two"** / **"P2"** | Manual Override | Sets the HUD sequence to Phase 2. |
+| **"Phase Three"** / **"P3"** | Manual Override | Sets the HUD sequence to Phase 3. |
+| **"Phase Four"** / **"P4"** | Manual Override | Sets the HUD sequence to Phase 4. |
 | **"Reset"** | Reset rotation | Restarts the current phase rotation back to move index 0. |
 
 ---
@@ -103,7 +112,7 @@ darknell_callouts/
 │
 ├── run_helper.bat      # Windows batch launcher (runs app in Session 1)
 ├── diagnose.py         # Troubleshooting tool to check OCR and pixel checkpoints
-├── test_rotation.py    # Pytest test suite proving skips/transitions (8/8 passing)
+├── test_rotation.py    # Pytest test suite proving skips/transitions (12/12 passing)
 ├── requirements.txt    # Python library requirements list
 └── README.md           # Documentation (this file)
 ```

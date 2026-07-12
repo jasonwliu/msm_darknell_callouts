@@ -1,0 +1,45 @@
+name: Test, Compile, and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags (e.g. v1.0.0)
+  workflow_dispatch: # Enable manual triggering for testing
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller pytest
+
+      - name: Run Tests
+        run: |
+          pytest
+
+      - name: Compile Application
+        run: |
+          pyinstaller --onefile --windowed --name "DarknellCallouts" --collect-all numpy --collect-all vosk --collect-all pyaudiowpatch --collect-all sounddevice main.py
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/DarknellCallouts.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

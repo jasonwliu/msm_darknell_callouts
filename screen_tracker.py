@@ -3,7 +3,6 @@ import asyncio
 from PyQt6.QtCore import QThread, pyqtSignal
 from PIL import ImageGrab
 import numpy as np
-import winocr
 
 class ScreenTrackerThread(QThread):
     phase_changed = pyqtSignal(int)
@@ -53,6 +52,44 @@ class ScreenTrackerThread(QThread):
         # or tall (40px+), as the background and text contain no green hues.
         return green_pixel_count >= 2
 
+    def detect_nameplate_bounds(self, img):
+        """
+        Detect the left and right boundaries of the purple boss nameplate box.
+        This provides leniency if the user includes extra pixels on either side.
+        """
+        w, h = img.size
+        left = 0
+        right = w - 1
+        
+        # Scan from left to find first column containing nameplate pixels
+        # Nameplate border and background contain blue/purple tones (B channel > 45, B > R + 10)
+        for x in range(w):
+            has_blue = False
+            for y in range(h):
+                r, g, b = img.getpixel((x, y))[:3]
+                if b > 45 and b > r + 10:
+                    has_blue = True
+                    break
+            if has_blue:
+                left = x
+                break
+                
+        # Scan from right to find last column containing nameplate pixels
+        for x in range(w - 1, -1, -1):
+            has_blue = False
+            for y in range(h):
+                r, g, b = img.getpixel((x, y))[:3]
+                if b > 45 and b > r + 10:
+                    has_blue = True
+                    break
+            if has_blue:
+                right = x
+                break
+                
+        if right <= left:
+            return 0, w - 1
+        return left, right
+
     def run(self):
         self._stop_requested = False
         self.status_message.emit("Screen tracker started.")
@@ -81,24 +118,28 @@ class ScreenTrackerThread(QThread):
                 # Capture the calibrated HP bar region
                 img = ImageGrab.grab(bbox=(x, y, x + w, y + h))
                 
-                # Verify that the HP bar is active/visible by checking the left edge (8% width to avoid rounded borders)
-                hp_bar_active = self.check_column_filled(img, int(0.08 * w), h, filled_color)
+                # Detect the actual nameplate boundaries inside the captured image (add calibration leniency)
+                left, right = self.detect_nameplate_bounds(img)
+                actual_w = right - left + 1
+                
+                # Verify that the HP bar is active/visible by checking the left edge (8% width of nameplate)
+                hp_bar_active = self.check_column_filled(img, left + int(0.08 * actual_w), h, filled_color)
                 
                 if not hp_bar_active:
                     # In lobby or boss is dead: clear history and skip phase detection
                     read_history.clear()
                     continue
                 
-                # Check column fill status at horizontal landmarks
-                # Phase 2: past "ne" in "Darknell" (~77% of HP bar width)
-                # Phase 3: past "ar" in "Darknell" (~65% of HP bar width)
-                # Phase 4: past "ar" in "Guard" (~23% of HP bar width)
-                filled_p4 = self.check_column_filled(img, int(0.23 * w), h, filled_color)
-                filled_p3 = self.check_column_filled(img, int(0.65 * w), h, filled_color)
-                filled_p2 = self.check_column_filled(img, int(0.77 * w), h, filled_color)
+                # Check column fill status at character-aligned landmarks relative to actual nameplate
+                # Phase 2: between "ne" in "Darknell" (~73% of nameplate width)
+                # Phase 3: between "ar" in "Darknell" (~65% of nameplate width)
+                # Phase 4: between "ar" in "Guard" (~31% of nameplate width)
+                filled_p4 = self.check_column_filled(img, left + int(0.31 * actual_w), h, filled_color)
+                filled_p3 = self.check_column_filled(img, left + int(0.65 * actual_w), h, filled_color)
+                filled_p2 = self.check_column_filled(img, left + int(0.73 * actual_w), h, filled_color)
                 
                 # Log debug info to console (will appear in task logs)
-                print(f"[Tracker] Active={hp_bar_active} | p4(23%)={filled_p4} | p3(65%)={filled_p3} | p2(77%)={filled_p2}")
+                print(f"[Tracker] Active={hp_bar_active} | p4(31%)={filled_p4} | p3(65%)={filled_p3} | p2(73%)={filled_p2}")
                 
                 # Determine detected phase
                 if not filled_p4:

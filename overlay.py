@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QComboBox, QFrame, QApplication
 )
 from PyQt6.QtGui import QColor, QPainter, QPen
-import sounddevice as sd
+import pyaudiowpatch as pyaudio
 from PIL import ImageGrab
 import config
 
@@ -99,6 +99,8 @@ class OverlayWindow(QWidget):
     toggle_interaction_signal = pyqtSignal()
     calibrate_requested = pyqtSignal()
     mic_changed = pyqtSignal(int)
+    listener_changed = pyqtSignal(int)
+    audio_mode_changed = pyqtSignal(str)
     phase_override = pyqtSignal(int)
     reset_rotation = pyqtSignal()
 
@@ -140,24 +142,6 @@ class OverlayWindow(QWidget):
         self.phase_label.setStyleSheet("font-size: 11px; font-weight: bold; color: #ff9900; text-transform: uppercase;")
         self.hud_layout.addWidget(self.phase_label)
 
-        # Move 1 (Current / Next)
-        self.move1_label = QLabel("Waiting...")
-        self.move1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.move1_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
-        self.hud_layout.addWidget(self.move1_label)
-
-        # Move 2 (Following)
-        self.move2_label = QLabel("")
-        self.move2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.move2_label.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.7); margin-bottom: 1px;")
-        self.hud_layout.addWidget(self.move2_label)
-
-        # Move 3 (Third)
-        self.move3_label = QLabel("")
-        self.move3_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.move3_label.setStyleSheet("font-size: 11px; color: rgba(255, 255, 255, 0.4);")
-        self.hud_layout.addWidget(self.move3_label)
-
         self.container_layout.addLayout(self.hud_layout)
 
         # ------------------ Config / Interactive Controls Section ------------------
@@ -192,16 +176,43 @@ class OverlayWindow(QWidget):
             phase_layout.addWidget(btn)
         self.control_layout.addLayout(phase_layout)
 
-        # Audio Selector
-        audio_layout = QHBoxLayout()
-        audio_label = QLabel("Mic:")
-        audio_label.setStyleSheet("color: white; font-size: 11px;")
-        audio_layout.addWidget(audio_label)
+        # Audio Mode & Selector Layout
+        audio_layout = QVBoxLayout()
+        audio_layout.setSpacing(4)
 
+        # 1. Mode selection
+        mode_row = QHBoxLayout()
+        mode_label = QLabel("Mode:")
+        mode_label.setStyleSheet("color: white; font-size: 11px;")
+        mode_row.addWidget(mode_label)
+        self.mode_box = QComboBox()
+        self.mode_box.addItems(["Shotcaller (Mic)", "Listener (Loopback)"])
+        self.mode_box.currentIndexChanged.connect(self.on_mode_changed)
+        mode_row.addWidget(self.mode_box)
+        audio_layout.addLayout(mode_row)
+
+        # 2. Mic selection (visible in shotcaller mode)
+        self.mic_row_layout = QHBoxLayout()
+        self.mic_label = QLabel("Mic:")
+        self.mic_label.setStyleSheet("color: white; font-size: 11px;")
+        self.mic_row_layout.addWidget(self.mic_label)
         self.mic_box = QComboBox()
-        self.populate_mics()
         self.mic_box.currentIndexChanged.connect(self.on_mic_changed)
-        audio_layout.addWidget(self.mic_box)
+        self.mic_row_layout.addWidget(self.mic_box)
+        audio_layout.addLayout(self.mic_row_layout)
+
+        # 3. Listener loopback selection (visible in listener mode)
+        self.listener_row_layout = QHBoxLayout()
+        self.listener_label = QLabel("Speaker:")
+        self.listener_label.setStyleSheet("color: white; font-size: 11px;")
+        self.listener_row_layout.addWidget(self.listener_label)
+        self.listener_box = QComboBox()
+        self.listener_box.currentIndexChanged.connect(self.on_listener_changed)
+        self.listener_row_layout.addWidget(self.listener_box)
+        audio_layout.addLayout(self.listener_row_layout)
+
+        self.populate_devices()
+
         self.control_layout.addLayout(audio_layout)
 
         # Hotkey / Lock Guide
@@ -227,55 +238,131 @@ class OverlayWindow(QWidget):
         # Initialize to Interactive Mode
         self.set_interactive_mode(True)
 
-    def populate_mics(self):
-        self.mic_box.clear()
-        devices = sd.query_devices()
-        input_devices = []
-        
-        # Retrieve all input devices
-        for idx, dev in enumerate(devices):
-            if dev['max_input_channels'] > 0:
-                input_devices.append((idx, dev['name']))
-        
-        # Add to box
-        self.mics_list = input_devices
-        for idx, name in input_devices:
-            # truncate name for clean layout
-            disp_name = (name[:25] + '...') if len(name) > 28 else name
-            self.mic_box.addItem(disp_name)
+    def toggle_device_dropdowns(self, mode):
+        is_shotcaller = (mode == "shotcaller")
+        self.mic_label.setVisible(is_shotcaller)
+        self.mic_box.setVisible(is_shotcaller)
+        self.listener_label.setVisible(not is_shotcaller)
+        self.listener_box.setVisible(not is_shotcaller)
 
-        # Match loaded config
-        cfg = config.load_config()
-        saved_idx = cfg.get("audio_device_index")
-        if saved_idx is not None:
-            for combobox_idx, (real_idx, _) in enumerate(self.mics_list):
-                if real_idx == saved_idx:
-                    self.mic_box.setCurrentIndex(combobox_idx)
-                    break
+    def on_mode_changed(self, index):
+        mode = "shotcaller" if index == 0 else "listener"
+        self.toggle_device_dropdowns(mode)
+        self.audio_mode_changed.emit(mode)
+
+    def populate_devices(self):
+        self.mic_box.clear()
+        self.listener_box.clear()
+        
+        p = pyaudio.PyAudio()
+        try:
+            mics = []
+            listeners = []
+            
+            for i in range(p.get_device_count()):
+                try:
+                    dev = p.get_device_info_by_index(i)
+                except Exception:
+                    continue
+                    
+                if dev.get("maxInputChannels", 0) <= 0:
+                    continue
+                    
+                name = dev.get("name", "")
+                is_loopback = dev.get("isLoopbackDevice", False)
+                
+                if is_loopback:
+                    listeners.append((i, name))
+                else:
+                    mics.append((i, name))
+                    
+            self.mics_list = mics
+            self.listeners_list = listeners
+            
+            # Populate mic box
+            for idx, name in mics:
+                disp_name = (name[:25] + '...') if len(name) > 28 else name
+                self.mic_box.addItem(disp_name)
+                
+            # Populate listener box
+            for idx, name in listeners:
+                disp_name = (name[:25] + '...') if len(name) > 28 else name
+                self.listener_box.addItem(disp_name)
+                
+            # Load config to select active indices
+            cfg = config.load_config()
+            
+            # Select active mode
+            saved_mode = cfg.get("audio_mode", "shotcaller")
+            if saved_mode == "shotcaller":
+                self.mode_box.setCurrentIndex(0)
+            else:
+                self.mode_box.setCurrentIndex(1)
+            self.toggle_device_dropdowns(saved_mode)
+            
+            # Select active mic
+            saved_mic_idx = cfg.get("audio_device_index")
+            if saved_mic_idx is not None:
+                for combobox_idx, (real_idx, _) in enumerate(self.mics_list):
+                    if real_idx == saved_mic_idx:
+                        self.mic_box.setCurrentIndex(combobox_idx)
+                        break
+                        
+            # Select active listener
+            saved_listener_idx = cfg.get("listener_device_index")
+            if saved_listener_idx is not None:
+                for combobox_idx, (real_idx, _) in enumerate(self.listeners_list):
+                    if real_idx == saved_listener_idx:
+                        self.listener_box.setCurrentIndex(combobox_idx)
+                        break
+        finally:
+            p.terminate()
 
     def on_mic_changed(self, combobox_idx):
         if combobox_idx >= 0 and combobox_idx < len(self.mics_list):
             real_idx = self.mics_list[combobox_idx][0]
             self.mic_changed.emit(real_idx)
 
+    def on_listener_changed(self, combobox_idx):
+        if combobox_idx >= 0 and combobox_idx < len(self.listeners_list):
+            real_idx = self.listeners_list[combobox_idx][0]
+            self.listener_changed.emit(real_idx)
+
     def set_status(self, text, color="#88ff88"):
         self.status_label.setText(text)
         self.status_label.setStyleSheet(f"font-size: 9px; color: {color};")
 
-    def update_moves(self, phase, next_moves):
+    def update_moves(self, phase, all_moves, current_index):
         # Update phase label
         self.phase_label.setText(f"PHASE {phase}")
         colors = {1: "#22ff22", 2: "#ff9900", 3: "#ff33aa", 4: "#ff2222"}
         self.phase_label.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {colors.get(phase, '#ffaa00')}; text-transform: uppercase;")
 
-        # Update labels
-        if len(next_moves) >= 1:
-            self.move1_label.setText(next_moves[0])
-        else:
-            self.move1_label.setText("Waiting...")
+        # Clear existing labels in self.hud_layout (excluding phase_label which is at index 0)
+        while self.hud_layout.count() > 1:
+            item = self.hud_layout.takeAt(1)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        # Add all moves starting from current_index (scrolling full list layout)
+        n = len(all_moves)
+        for offset in range(n):
+            idx = (current_index + offset) % n
+            move = all_moves[idx]
+            is_current = (offset == 0)
             
-        self.move2_label.setText(next_moves[1] if len(next_moves) >= 2 else "")
-        self.move3_label.setText(next_moves[2] if len(next_moves) >= 3 else "")
+            lbl = QLabel(move)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            if is_current:
+                # Highlighted next move: large, bold, bright color, prefix with arrow
+                lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
+                lbl.setText(f"➔ {move}")
+            else:
+                # Upcoming moves: normal white/grey, uniform opacity
+                lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
+            
+            self.hud_layout.addWidget(lbl)
 
     def set_interactive_mode(self, interactive):
         self.is_interactive = interactive

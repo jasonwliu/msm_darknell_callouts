@@ -1,0 +1,8 @@
+PyQt6>=6.0.0
+sounddevice>=0.4.0
+pyaudiowpatch>=0.2.12
+vosk>=0.3.45
+pillow>=10.0.0
+numpy>=1.20.0
+keyboard>=0.13.5
+winocr>=0.0.10
