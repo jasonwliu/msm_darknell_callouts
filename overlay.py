@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QComboBox, QFrame, QApplication, QCheckBox
 )
-from PyQt6.QtGui import QColor, QPainter, QPen
+from PyQt6.QtGui import QColor, QPainter, QPen, QFont, QFontMetrics
 import pyaudiowpatch as pyaudio
 from PIL import ImageGrab
 import config
@@ -115,6 +115,9 @@ class OverlayWindow(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        # Calculate static HUD overlay width
+        self.overlay_width = self.calculate_max_width()
+
         # Frame and styling
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint | 
@@ -472,29 +475,48 @@ class OverlayWindow(QWidget):
                 idx = (current_index + offset) % n
                 move = all_moves[idx]
                 is_current = (offset == 0)
+                is_prominent = (1 <= offset <= 3)
                 
                 lbl = QLabel(move)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 if is_current:
                     lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
                     lbl.setText(f"➔ {move}")
+                elif is_prominent:
+                    lbl.setStyleSheet("font-size: 15px; font-weight: bold; color: rgba(255, 255, 255, 0.95); margin-bottom: 1px;")
                 else:
-                    lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
+                    lbl.setStyleSheet("font-size: 12px; color: rgba(255, 255, 255, 0.45);")
                 self.hud_layout.addWidget(lbl)
         else:
             # Static mode: list is in normal order (0 to n-1), highlight the active index
             for idx in range(n):
                 move = all_moves[idx]
                 is_current = (idx == current_index)
+                relative_offset = (idx - current_index) % n
+                is_prominent = (1 <= relative_offset <= 3)
                 
                 lbl = QLabel(move)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 if is_current:
                     lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
                     lbl.setText(f"➔ {move}")
+                elif is_prominent:
+                    lbl.setStyleSheet("font-size: 15px; font-weight: bold; color: rgba(255, 255, 255, 0.95); margin-bottom: 1px;")
                 else:
-                    lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
+                    lbl.setStyleSheet("font-size: 12px; color: rgba(255, 255, 255, 0.45);")
                 self.hud_layout.addWidget(lbl)
+
+    def calculate_max_width(self):
+        font = QFont("Segoe UI", 20, QFont.Weight.Bold)
+        metrics = QFontMetrics(font)
+        max_w = 0
+        all_possible_moves = ["Meteor", "Push", "Buff", "Dash", "Dive", "Charge", "Shock", "Shockwave"]
+        for move in all_possible_moves:
+            text = f"➔ {move}"
+            w = metrics.horizontalAdvance(text)
+            if w > max_w:
+                max_w = w
+        return max_w + 55
 
     def set_interactive_mode(self, interactive):
         self.is_interactive = interactive
@@ -541,6 +563,7 @@ class OverlayWindow(QWidget):
                     font-size: 11px;
                 }
             """)
+            self.setFixedWidth(240)
         else:
             # Hide configuration panel completely, leaving only transparent HUD
             self.control_widget.hide()
@@ -565,6 +588,7 @@ class OverlayWindow(QWidget):
                     background-color: transparent;
                 }
             """)
+            self.setFixedWidth(self.overlay_width)
         
         # Crucial: Must call show() again after changing window flags, otherwise window disappears
         self.show()
