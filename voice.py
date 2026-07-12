@@ -141,7 +141,8 @@ class VoiceThread(QThread):
 
         # Setup strict vocabulary to boost accuracy
         words = [
-            "meteor", "push", "buff", "dash", "fly", "charge",
+            "meteor", "push", "buff", "dash", "dive", "charge",
+            "shock", "shockwave",
             "phase", "one", "two", "three", "four",
             "reset", "stun", "stunned", "stop", "[unk]"
         ]
@@ -243,9 +244,24 @@ class VoiceThread(QThread):
             elif "phase four" in text_norm:
                 self.command_recognized.emit("p4")
             else:
+                mapping = {
+                    "meteor": "meteor",
+                    "push": "push",
+                    "buff": "buff",
+                    "dash": "dash",
+                    "fly": "dive",
+                    "dive": "dive",
+                    "charge": "charge",
+                    "shock": "charge",
+                    "shockwave": "charge",
+                    "reset": "reset",
+                    "stun": "stun",
+                    "stunned": "stunned"
+                }
                 for word in text_norm.split():
-                    if word in ["meteor", "push", "buff", "dash", "fly", "charge", "reset", "stun", "stunned"]:
-                        self.command_recognized.emit(word)
+                    mapped = mapping.get(word)
+                    if mapped:
+                        self.command_recognized.emit(mapped)
 
         # Start streams
         if mic_stream is not None:

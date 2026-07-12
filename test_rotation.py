@@ -32,7 +32,7 @@ def test_voice_command_skip_1():
     assert "Stun detected" in msg
     assert engine.stun_flag == False
     assert engine.index == 2  # next move is Buff
-    assert engine.get_next_moves() == ["Buff", "Dash", "Fly"]
+    assert engine.get_next_moves() == ["Buff", "Dash", "Dive"]
 
 def test_voice_command_skip_3():
     engine = RotationEngine()
@@ -46,8 +46,8 @@ def test_voice_command_skip_3():
     assert changed
     assert "Stun detected" in msg
     assert engine.stun_flag == False
-    assert engine.index == 4  # next move is Fly
-    assert engine.get_next_moves()[0] == "Fly"
+    assert engine.index == 4  # next move is Dive
+    assert engine.get_next_moves()[0] == "Dive"
 
 def test_voice_command_out_of_order_without_stun_ignored():
     engine = RotationEngine()
@@ -72,12 +72,12 @@ def test_voice_command_manual_phase():
     assert changed
     assert engine.phase == 2
     assert engine.index == 0
-    assert engine.get_next_moves()[0] == "Fly"
+    assert engine.get_next_moves()[0] == "Dive"
 
 def test_voice_command_pattern_phase():
     engine = RotationEngine()
     # We are in Phase 1.
-    # Phase 2 starts with Fly, Buff, Charge, Push.
+    # Phase 2 starts with Dive, Buff, Charge, Push.
     # If we say "charge", it's not in Phase 1's skip window.
     # It should transition to Phase 2, and set index to 3 (after Charge, which is Push).
     changed, msg = engine.process_voice_command("charge")
@@ -89,7 +89,7 @@ def test_voice_command_pattern_phase():
 
 def test_voice_command_repeat_ignore():
     engine = RotationEngine()
-    # Phase 1 sequence starting: Meteor, Push, Buff, Dash, Fly, Meteor...
+    # Phase 1 sequence starting: Meteor, Push, Buff, Dash, Dive, Meteor...
     # Say meteor: advances index to 1 ("Push")
     changed, msg = engine.process_voice_command("meteor")
     assert changed
@@ -111,20 +111,20 @@ def test_voice_command_sequence_sync():
     
     changed2, msg2 = engine.process_voice_command("push")
     # "buff" then "push" uniquely matches Phase 1 index 6-7 ("Buff", "Push").
-    # It should sync index to (7 + 1) = 8 ("Fly").
+    # It should sync index to (7 + 1) = 8 ("Dive").
     assert changed2
     assert engine.index == 8
     assert "Sequence matched" in msg2
 
-def test_voice_command_fly_into_meteor_sync():
+def test_voice_command_dive_into_meteor_sync():
     engine = RotationEngine()
-    # Next expected is Meteor. User says "dash", "fly", then "meteor"
-    # "dash" -> "fly" is a unique sequence in Phase 1 (index 3-4), syncing to index 5 ("Meteor")
+    # Next expected is Meteor. User says "dash", "dive", then "meteor"
+    # "dash" -> "dive" is a unique sequence in Phase 1 (index 3-4), syncing to index 5 ("Meteor")
     changed1, msg1 = engine.process_voice_command("dash")
     assert not changed1
     assert engine.index == 0
     
-    changed2, msg2 = engine.process_voice_command("fly")
+    changed2, msg2 = engine.process_voice_command("dive")
     assert changed2
     assert engine.index == 5
     assert "Sequence matched" in msg2
@@ -133,5 +133,23 @@ def test_voice_command_fly_into_meteor_sync():
     assert changed3
     assert engine.index == 6
     assert "Advanced to next" in msg3
+
+def test_voice_command_shock_mappings():
+    engine = RotationEngine()
+    # Go to Phase 2
+    engine.set_phase(2)
+    # Next expected is Dive (index 0), then Buff (index 1), then Charge (index 2).
+    # Say "dive" (mapped from "fly"/"dive"): advances to 1 ("Buff")
+    changed1, msg1 = engine.process_voice_command("dive")
+    assert changed1
+    # Say "buff": advances to 2 ("Charge")
+    changed2, msg2 = engine.process_voice_command("buff")
+    assert changed2
+    
+    # Try calling "shock" or "shockwave" (mapped to "charge"). Next is "Charge".
+    changed3, msg3 = engine.process_voice_command("shock")
+    assert changed3
+    assert engine.index == 3  # next is Push
+    assert engine.get_next_moves()[0] == "Push"
 
 

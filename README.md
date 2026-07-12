@@ -12,7 +12,7 @@ A real-time, transparent desktop HUD overlay designed to assist MapleStory M pla
   - **Listener Mode**: Listens to speaker loopback input (WASAPI loopback) to track a teammate's callouts without recording your own microphone, avoiding double-skips.
 - **⚡ Stun-Skip & Sequence Resync**:
   - **Stun Skip**: When Darknell gets stunned and skips moves, say `"stun"` or `"stunned"` followed by the move he is performing to skip. Normal out-of-order commands are ignored to prevent noise-based skips.
-  - **Sequence Sync**: Say a multi-move pattern (e.g. `"Fly into Meteor"`) to perform a phase-wide lookahead scan, resynchronizing the rotation engine automatically.
+  - **Sequence Sync**: Say a multi-move pattern (e.g. `"Dive into Meteor"`) to perform a phase-wide lookahead scan, resynchronizing the rotation engine automatically.
 - **🔍 Active HP Tracking**: Auto-detects boss phases (Phase 1, 2, 3, 4) by sampling the HP bar width.
   - **Auto-Cropping Leniency**: Automatically finds the exact bounds of the nameplate box within the calibrated region, absorbing user margin drawing errors.
   - **No-OCR Green Density Scanning**: Runs a vertical pixel-density hue scanner that is immune to centered text overlays ("Guard Captain Darknell"), resolution scaling, or accidental click calibrations.
@@ -92,10 +92,10 @@ Upon launching the application:
 | **"Push"** | Advance move | Confirms Darknell completed a Push attack. |
 | **"Buff"** | Advance move | Confirms Darknell completed a Buff cast. |
 | **"Dash"** | Advance move | Confirms Darknell completed a Dash. |
-| **"Fly"** | Advance move | Confirms Darknell completed a Fly. |
-| **"Charge"** | Advance move | Confirms Darknell completed a Charge (P2/P3/P4). |
+| **"Dive"** | Advance move | Confirms Darknell completed a Dive. |
+| **"Charge"** / **"Shock"** / **"Shockwave"** | Advance move | Confirms Darknell completed a Charge (P2/P3/P4). |
 | **"Stun [Move]"** or **"Stunned [Move]"** | Stun Skip | Skips forward in the rotation to the spoken move (e.g. `"Stun Push"`). Out-of-order calls without this prefix are ignored to prevent noise skips. |
-| **[Pattern Sequence]** | Sequence Sync | Speak a sequence of 2-3 moves (e.g. `"Fly into Meteor"`) to auto-sync the tracker to that position in the rotation. |
+| **[Pattern Sequence]** | Sequence Sync | Speak a sequence of 2-3 moves (e.g. `"Dive into Meteor"`) to auto-sync the tracker to that position in the rotation. |
 | **"Phase One"** / **"P1"** | Manual Override | Sets the HUD sequence to Phase 1. |
 | **"Phase Two"** / **"P2"** | Manual Override | Sets the HUD sequence to Phase 2. |
 | **"Phase Three"** / **"P3"** | Manual Override | Sets the HUD sequence to Phase 3. |

@@ -1,10 +1,10 @@
 class RotationEngine:
     def __init__(self):
         self.rotations = {
-            1: ["Meteor", "Push", "Buff", "Dash", "Fly", "Meteor", "Buff", "Push", "Fly", "Dash", "Meteor", "Push", "Dash", "Buff", "Fly"],
-            2: ["Fly", "Buff", "Charge", "Push", "Dash", "Meteor", "Fly", "Buff", "Dash", "Push", "Charge", "Meteor"],
-            3: ["Fly", "Meteor", "Push", "Dash", "Fly", "Buff", "Charge", "Meteor", "Push", "Dash", "Buff"],
-            4: ["Meteor", "Buff", "Push", "Dash", "Charge", "Fly", "Meteor", "Push", "Buff", "Charge", "Dash", "Fly"]
+            1: ["Meteor", "Push", "Buff", "Dash", "Dive", "Meteor", "Buff", "Push", "Dive", "Dash", "Meteor", "Push", "Dash", "Buff", "Dive"],
+            2: ["Dive", "Buff", "Charge", "Push", "Dash", "Meteor", "Dive", "Buff", "Dash", "Push", "Charge", "Meteor"],
+            3: ["Dive", "Meteor", "Push", "Dash", "Dive", "Buff", "Charge", "Meteor", "Push", "Dash", "Buff"],
+            4: ["Meteor", "Buff", "Push", "Dash", "Charge", "Dive", "Meteor", "Push", "Buff", "Charge", "Dash", "Dive"]
         }
         self.phase = 1
         self.index = 0
@@ -95,6 +95,8 @@ class RotationEngine:
         Returns: (state_changed, message)
         """
         w = word.lower().strip()
+        if w in ["shock", "shockwave"]:
+            w = "charge"
         
         # 1. Manual phase override commands
         if w in ["phase one", "p_one", "p1"]:
@@ -121,7 +123,7 @@ class RotationEngine:
             return True, "Stun skip mode enabled. Speak the move you see next."
 
         # Check if it is a valid move name
-        valid_moves = {"meteor", "push", "buff", "dash", "fly", "charge"}
+        valid_moves = {"meteor", "push", "buff", "dash", "dive", "charge"}
         if w not in valid_moves:
             return False, "Unrecognized command or out of skip range"
 
