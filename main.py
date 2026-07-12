@@ -268,17 +268,17 @@ class MainApp:
         # Create tray menu
         self.tray_menu = QMenu()
         
-        toggle_action = QAction("Toggle Setup/HUD Mode", self)
+        toggle_action = QAction("Toggle Setup/HUD Mode")
         toggle_action.triggered.connect(self.toggle_overlay_interaction)
         self.tray_menu.addAction(toggle_action)
         
-        reset_action = QAction("Reset Rotation", self)
+        reset_action = QAction("Reset Rotation")
         reset_action.triggered.connect(self.reset_moves)
         self.tray_menu.addAction(reset_action)
         
         self.tray_menu.addSeparator()
         
-        quit_action = QAction("Quit Application", self)
+        quit_action = QAction("Quit Application")
         quit_action.triggered.connect(QApplication.instance().quit)
         self.tray_menu.addAction(quit_action)
         
