@@ -2,7 +2,7 @@ import sys
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QPushButton, QComboBox, QFrame, QApplication
+    QPushButton, QComboBox, QFrame, QApplication, QCheckBox
 )
 from PyQt6.QtGui import QColor, QPainter, QPen
 import pyaudiowpatch as pyaudio
@@ -104,6 +104,7 @@ class OverlayWindow(QWidget):
     phase_override = pyqtSignal(int)
     reset_rotation = pyqtSignal()
     hotkey_changed = pyqtSignal(str)
+    scroll_moves_changed = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -220,6 +221,12 @@ class OverlayWindow(QWidget):
         self.hotkey_btn.clicked.connect(self.start_hotkey_recording)
         self.control_layout.addWidget(self.hotkey_btn)
 
+        # Scroll checkbox
+        self.scroll_checkbox = QCheckBox("Scroll moves list")
+        self.scroll_checkbox.setStyleSheet("color: white; font-size: 11px; margin-top: 4px; margin-bottom: 4px;")
+        self.scroll_checkbox.stateChanged.connect(self.on_scroll_setting_changed)
+        self.control_layout.addWidget(self.scroll_checkbox)
+
         self.populate_devices()
 
         # Hotkey / Lock Guide
@@ -326,6 +333,10 @@ class OverlayWindow(QWidget):
             # Select active hotkey
             saved_hotkey = cfg.get("hotkey", "ctrl+shift+u")
             self.hotkey_btn.setText(f"Hotkey: {saved_hotkey}")
+
+            # Select active scroll setting
+            saved_scroll = cfg.get("scroll_moves", True)
+            self.scroll_checkbox.setChecked(saved_scroll)
         finally:
             p.terminate()
 
@@ -342,6 +353,9 @@ class OverlayWindow(QWidget):
     def set_status(self, text, color="#88ff88"):
         self.status_label.setText(text)
         self.status_label.setStyleSheet(f"font-size: 9px; color: {color};")
+
+    def on_scroll_setting_changed(self, state):
+        self.scroll_moves_changed.emit(self.scroll_checkbox.isChecked())
 
     def start_hotkey_recording(self):
         if self.is_recording_hotkey:
@@ -447,24 +461,40 @@ class OverlayWindow(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
-        # Add all moves starting from current_index (scrolling full list layout)
+        # Load scroll setting from config
+        cfg = config.load_config()
+        scroll_enabled = cfg.get("scroll_moves", True)
+
         n = len(all_moves)
-        for offset in range(n):
-            idx = (current_index + offset) % n
-            move = all_moves[idx]
-            is_current = (offset == 0)
-            
-            lbl = QLabel(move)
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            if is_current:
-                # Highlighted next move: large, bold, bright color, prefix with arrow
-                lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
-                lbl.setText(f"➔ {move}")
-            else:
-                # Upcoming moves: normal white/grey, uniform opacity
-                lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
-            
-            self.hud_layout.addWidget(lbl)
+        if scroll_enabled:
+            # Scrolling mode: list starts at current_index and wraps around
+            for offset in range(n):
+                idx = (current_index + offset) % n
+                move = all_moves[idx]
+                is_current = (offset == 0)
+                
+                lbl = QLabel(move)
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if is_current:
+                    lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
+                    lbl.setText(f"➔ {move}")
+                else:
+                    lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
+                self.hud_layout.addWidget(lbl)
+        else:
+            # Static mode: list is in normal order (0 to n-1), highlight the active index
+            for idx in range(n):
+                move = all_moves[idx]
+                is_current = (idx == current_index)
+                
+                lbl = QLabel(move)
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if is_current:
+                    lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
+                    lbl.setText(f"➔ {move}")
+                else:
+                    lbl.setStyleSheet("font-size: 14px; color: rgba(255, 255, 255, 0.65);")
+                self.hud_layout.addWidget(lbl)
 
     def set_interactive_mode(self, interactive):
         self.is_interactive = interactive

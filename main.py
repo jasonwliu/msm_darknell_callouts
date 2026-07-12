@@ -103,6 +103,7 @@ class MainApp:
         self.overlay.phase_override.connect(self.manual_phase)
         self.overlay.reset_rotation.connect(self.reset_moves)
         self.overlay.hotkey_changed.connect(self.update_hotkey)
+        self.overlay.scroll_moves_changed.connect(self.update_scroll_setting)
 
         # Setup background threads
         self.voice_thread = None
@@ -155,6 +156,12 @@ class MainApp:
         config.save_config(self.config_data)
         self.setup_hotkey()
         self.overlay.set_status(f"Hotkey updated: {new_hotkey}", "#88ff88")
+
+    def update_scroll_setting(self, scroll_enabled):
+        self.config_data["scroll_moves"] = scroll_enabled
+        config.save_config(self.config_data)
+        self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
+        self.overlay.set_status(f"Scroll moves list: {'enabled' if scroll_enabled else 'disabled'}", "#88ff88")
 
     def start_speech_startup(self):
         # If model is already downloaded, start voice thread immediately
