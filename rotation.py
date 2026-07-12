@@ -2,7 +2,7 @@ class RotationEngine:
     def __init__(self):
         self.rotations = {
             1: ["Meteor", "Push", "Buff", "Dash", "Fly", "Meteor", "Buff", "Push", "Fly", "Dash", "Meteor", "Push", "Dash", "Buff", "Fly"],
-            2: ["Buff", "Charge", "Push", "Dash", "Meteor", "Fly", "Buff", "Dash", "Push", "Charge", "Meteor", "Fly"],
+            2: ["Fly", "Buff", "Charge", "Push", "Dash", "Meteor", "Fly", "Buff", "Dash", "Push", "Charge", "Meteor"],
             3: ["Fly", "Meteor", "Push", "Dash", "Fly", "Buff", "Charge", "Meteor", "Push", "Dash", "Buff"],
             4: ["Meteor", "Buff", "Push", "Dash", "Charge", "Fly", "Meteor", "Push", "Buff", "Charge", "Dash", "Fly"]
         }

@@ -72,18 +72,18 @@ def test_voice_command_manual_phase():
     assert changed
     assert engine.phase == 2
     assert engine.index == 0
-    assert engine.get_next_moves()[0] == "Buff"
+    assert engine.get_next_moves()[0] == "Fly"
 
 def test_voice_command_pattern_phase():
     engine = RotationEngine()
     # We are in Phase 1.
-    # Phase 2 starts with Buff, Charge, Push.
+    # Phase 2 starts with Fly, Buff, Charge, Push.
     # If we say "charge", it's not in Phase 1's skip window.
-    # It should transition to Phase 2, and set index to 2 (after Charge, which is Push).
+    # It should transition to Phase 2, and set index to 3 (after Charge, which is Push).
     changed, msg = engine.process_voice_command("charge")
     assert changed
     assert engine.phase == 2
-    assert engine.index == 2
+    assert engine.index == 3
     assert engine.get_next_moves()[0] == "Push"
     print("Pattern phase test passed:", msg)
 
