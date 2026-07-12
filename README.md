@@ -71,6 +71,12 @@ Upon launching the application:
      
      ![HP Bar Calibration Example](hp_bar_example.png)
      
+     The active HP tracker scans vertical columns at specific percentage offsets of the nameplate width to divide the fight into four distinct phases:
+     - **Phase 1 (100% - 73% HP)**: Initial phase.
+     - **Phase 2 (73% - 65% HP)**: Starts once the green HP drops past **73%** (positioned exactly between the `"n"` and `"e"` in `"Darknell"`).
+     - **Phase 3 (65% - 31% HP)**: Starts once the green HP drops past **65%** (positioned exactly between the `"a"` and `"r"` in `"Darknell"`).
+     - **Phase 4 (31% - 0% HP)**: Starts once the green HP drops past **31%** (positioned exactly between the `"a"` and `"r"` in `"Guard"`).
+     
    - Release the mouse. The coordinates will save persistently to `config.json`.
 4. **Lock & Play**:
    - Press `Ctrl+Shift+U` to lock the overlay into **HUD Mode**.
