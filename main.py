@@ -17,7 +17,8 @@ import shutil
 import keyboard
 import config
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PyQt6.QtGui import QIcon, QAction
 from rotation import RotationEngine
 from overlay import OverlayWindow, CalibrationWindow
 from voice import VoiceThread
@@ -104,6 +105,10 @@ class MainApp:
         self.hotkey_receiver = HotkeyReceiver()
         self.hotkey_receiver.hotkey_pressed.connect(self.toggle_overlay_interaction)
         self.setup_hotkey()
+
+        # Setup system tray icon
+        self.setup_tray_icon()
+        self.overlay.setWindowIcon(self.tray_icon.icon())
 
         # Begin voice model download/startup
         self.start_speech_startup()
@@ -229,6 +234,10 @@ class MainApp:
         self.overlay.set_status(f"Calibrated HP Bar: color={color}", "#88ff88")
 
     def clean_up(self):
+        # Hide tray icon
+        if hasattr(self, "tray_icon"):
+            self.tray_icon.hide()
+            
         # Clean up listeners and exit threads gracefully
         try:
             keyboard.unhook_all()
@@ -243,10 +252,63 @@ class MainApp:
             self.tracker_thread.stop()
             self.tracker_thread.wait()
 
+    def setup_tray_icon(self):
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(self.create_tray_icon())
+        self.tray_icon.setToolTip("Darknell Callouts Helper")
+        
+        # Create tray menu
+        self.tray_menu = QMenu()
+        
+        toggle_action = QAction("Toggle Setup/HUD Mode", self)
+        toggle_action.triggered.connect(self.toggle_overlay_interaction)
+        self.tray_menu.addAction(toggle_action)
+        
+        reset_action = QAction("Reset Rotation", self)
+        reset_action.triggered.connect(self.reset_moves)
+        self.tray_menu.addAction(reset_action)
+        
+        self.tray_menu.addSeparator()
+        
+        quit_action = QAction("Quit Application", self)
+        quit_action.triggered.connect(QApplication.instance().quit)
+        self.tray_menu.addAction(quit_action)
+        
+        self.tray_icon.setContextMenu(self.tray_menu)
+        self.tray_icon.activated.connect(self.on_tray_activated)
+        self.tray_icon.show()
+
+    def on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            self.toggle_overlay_interaction()
+
+    def create_tray_icon(self):
+        from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QPen
+        from PyQt6.QtCore import Qt
+        pixmap = QPixmap(64, 64)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Circular background with cyan border
+        painter.setBrush(QColor(20, 20, 20, 220))
+        painter.setPen(QPen(QColor(0, 255, 255), 4))
+        painter.drawEllipse(4, 4, 56, 56)
+        
+        # Neon cyan bold "D"
+        painter.setPen(QColor(0, 255, 255))
+        font = QFont("Arial", 28, QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "D")
+        
+        painter.end()
+        return QIcon(pixmap)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(True)
+    app.setQuitOnLastWindowClosed(False)
     
     main_app = MainApp()
     
