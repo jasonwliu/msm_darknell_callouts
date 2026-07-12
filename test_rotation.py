@@ -118,15 +118,20 @@ def test_voice_command_sequence_sync():
 
 def test_voice_command_fly_into_meteor_sync():
     engine = RotationEngine()
-    # Next expected is Meteor. User says "fly", then "meteor"
-    changed1, msg1 = engine.process_voice_command("fly")
+    # Next expected is Meteor. User says "dash", "fly", then "meteor"
+    # "dash" -> "fly" is a unique sequence in Phase 1 (index 3-4), syncing to index 5 ("Meteor")
+    changed1, msg1 = engine.process_voice_command("dash")
     assert not changed1
     assert engine.index == 0
     
-    changed2, msg2 = engine.process_voice_command("meteor")
-    # "fly" followed by "meteor" should match index 4-5 and sync to next index (6, "Buff")
+    changed2, msg2 = engine.process_voice_command("fly")
     assert changed2
-    assert engine.index == 6
+    assert engine.index == 5
     assert "Sequence matched" in msg2
+    
+    changed3, msg3 = engine.process_voice_command("meteor")
+    assert changed3
+    assert engine.index == 6
+    assert "Advanced to next" in msg3
 
 

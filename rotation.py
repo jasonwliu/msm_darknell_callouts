@@ -79,7 +79,7 @@ class RotationEngine:
                 min_dist = float('inf')
                 for start_idx in matches:
                     next_idx = (start_idx + k) % n
-                    dist = (start_idx - self.index) % n
+                    dist = (next_idx - self.index) % n
                     if dist < min_dist:
                         min_dist = dist
                         best_idx = next_idx
