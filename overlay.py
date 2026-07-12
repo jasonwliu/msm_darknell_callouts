@@ -344,9 +344,18 @@ class OverlayWindow(QWidget):
         self.status_label.setStyleSheet(f"font-size: 9px; color: {color};")
 
     def start_hotkey_recording(self):
-        self.is_recording_hotkey = True
-        self.hotkey_btn.setText("Press key combination...")
-        self.hotkey_btn.setStyleSheet("background-color: rgba(0, 255, 255, 0.3); border: 1px solid #00ffff; font-size: 11px;")
+        if self.is_recording_hotkey:
+            # Cancel recording if clicked again
+            self.is_recording_hotkey = False
+            self.hotkey_btn.setStyleSheet("")
+            cfg = config.load_config()
+            saved_hotkey = cfg.get("hotkey", "ctrl+shift+u")
+            self.hotkey_btn.setText(f"Hotkey: {saved_hotkey}")
+            self.set_status("Hotkey change cancelled", "#ffff00")
+        else:
+            self.is_recording_hotkey = True
+            self.hotkey_btn.setText("Press key combo... (Click to Cancel)")
+            self.hotkey_btn.setStyleSheet("background-color: rgba(0, 255, 255, 0.3); border: 1px solid #00ffff; font-size: 10px;")
 
     def keyPressEvent(self, event):
         if self.is_recording_hotkey:

@@ -128,6 +128,8 @@ class MainApp:
             self.overlay.set_status(f"Hotkey register failed: {e}", "#ff5555")
 
     def toggle_overlay_interaction(self):
+        if self.overlay.is_recording_hotkey:
+            return
         new_mode = not self.overlay.is_interactive
         self.overlay.set_interactive_mode(new_mode)
         if new_mode:
