@@ -131,15 +131,15 @@ class ScreenTrackerThread(QThread):
                     continue
                 
                 # Check column fill status at character-aligned landmarks relative to actual nameplate
-                # Phase 2: near the "n" in "Darknell" (~74% of nameplate width)
+                # Phase 2: in the "e" in "Darknell" (~75% of nameplate width)
                 # Phase 3: between "ar" in "Darknell" (~65% of nameplate width)
                 # Phase 4: in the "d" in "Guard" (~35% of nameplate width)
                 filled_p4 = self.check_column_filled(img, left + int(0.35 * actual_w), h, filled_color)
                 filled_p3 = self.check_column_filled(img, left + int(0.65 * actual_w), h, filled_color)
-                filled_p2 = self.check_column_filled(img, left + int(0.74 * actual_w), h, filled_color)
+                filled_p2 = self.check_column_filled(img, left + int(0.75 * actual_w), h, filled_color)
                 
                 # Log debug info to console (will appear in task logs)
-                print(f"[Tracker] Active={hp_bar_active} | p4(35%)={filled_p4} | p3(65%)={filled_p3} | p2(74%)={filled_p2}")
+                print(f"[Tracker] Active={hp_bar_active} | p4(35%)={filled_p4} | p3(65%)={filled_p3} | p2(75%)={filled_p2}")
                 
                 # Determine detected phase
                 if not filled_p4:
