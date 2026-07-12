@@ -213,14 +213,14 @@ class OverlayWindow(QWidget):
         self.listener_row_layout.addWidget(self.listener_box)
         audio_layout.addLayout(self.listener_row_layout)
 
-        self.populate_devices()
-
         self.control_layout.addLayout(audio_layout)
 
         # Change Hotkey button
         self.hotkey_btn = QPushButton("Hotkey: ctrl+shift+u")
         self.hotkey_btn.clicked.connect(self.start_hotkey_recording)
         self.control_layout.addWidget(self.hotkey_btn)
+
+        self.populate_devices()
 
         # Hotkey / Lock Guide
         self.info_label = QLabel("Press HOTKEY to Lock/Unlock")
