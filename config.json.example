@@ -1,0 +1,9 @@
+{
+    "hotkey": "ctrl+shift+u",
+    "ocr_region": [100, 100, 386, 112],
+    "audio_device_index": null,
+    "listener_device_index": null,
+    "audio_mode": "shotcaller",
+    "window_position": [100, 100],
+    "filled_hp_color": [50, 210, 50]
+}

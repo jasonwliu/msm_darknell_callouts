@@ -93,6 +93,7 @@ class MainApp:
         self.overlay.audio_mode_changed.connect(self.update_audio_mode)
         self.overlay.phase_override.connect(self.manual_phase)
         self.overlay.reset_rotation.connect(self.reset_moves)
+        self.overlay.hotkey_changed.connect(self.update_hotkey)
 
         # Setup background threads
         self.voice_thread = None
@@ -133,6 +134,12 @@ class MainApp:
             self.overlay.set_status("Setup Mode (Move/Configure)", "#00ffff")
         else:
             self.overlay.set_status("HUD Active (Click-through)", "#88ff88")
+
+    def update_hotkey(self, new_hotkey):
+        self.config_data["hotkey"] = new_hotkey
+        config.save_config(self.config_data)
+        self.setup_hotkey()
+        self.overlay.set_status(f"Hotkey updated: {new_hotkey}", "#88ff88")
 
     def start_speech_startup(self):
         # If model is already downloaded, start voice thread immediately

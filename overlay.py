@@ -103,11 +103,13 @@ class OverlayWindow(QWidget):
     audio_mode_changed = pyqtSignal(str)
     phase_override = pyqtSignal(int)
     reset_rotation = pyqtSignal()
+    hotkey_changed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
         self.is_interactive = True
         self.old_pos = None
+        self.is_recording_hotkey = False
 
         self.init_ui()
 
@@ -215,6 +217,11 @@ class OverlayWindow(QWidget):
 
         self.control_layout.addLayout(audio_layout)
 
+        # Change Hotkey button
+        self.hotkey_btn = QPushButton("Hotkey: ctrl+shift+u")
+        self.hotkey_btn.clicked.connect(self.start_hotkey_recording)
+        self.control_layout.addWidget(self.hotkey_btn)
+
         # Hotkey / Lock Guide
         self.info_label = QLabel("Press HOTKEY to Lock/Unlock")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -315,6 +322,10 @@ class OverlayWindow(QWidget):
                     if real_idx == saved_listener_idx:
                         self.listener_box.setCurrentIndex(combobox_idx)
                         break
+            
+            # Select active hotkey
+            saved_hotkey = cfg.get("hotkey", "ctrl+shift+u")
+            self.hotkey_btn.setText(f"Hotkey: {saved_hotkey}")
         finally:
             p.terminate()
 
@@ -331,6 +342,88 @@ class OverlayWindow(QWidget):
     def set_status(self, text, color="#88ff88"):
         self.status_label.setText(text)
         self.status_label.setStyleSheet(f"font-size: 9px; color: {color};")
+
+    def start_hotkey_recording(self):
+        self.is_recording_hotkey = True
+        self.hotkey_btn.setText("Press key combination...")
+        self.hotkey_btn.setStyleSheet("background-color: rgba(0, 255, 255, 0.3); border: 1px solid #00ffff; font-size: 11px;")
+
+    def keyPressEvent(self, event):
+        if self.is_recording_hotkey:
+            key = event.key()
+            if key == Qt.Key.Key_Escape:
+                self.is_recording_hotkey = False
+                self.hotkey_btn.setStyleSheet("")
+                cfg = config.load_config()
+                saved_hotkey = cfg.get("hotkey", "ctrl+shift+u")
+                self.hotkey_btn.setText(f"Hotkey: {saved_hotkey}")
+                event.accept()
+                return
+
+            mods = event.modifiers()
+            keys = []
+            
+            if mods & Qt.KeyboardModifier.ControlModifier:
+                keys.append("ctrl")
+            if mods & Qt.KeyboardModifier.ShiftModifier:
+                keys.append("shift")
+            if mods & Qt.KeyboardModifier.AltModifier:
+                keys.append("alt")
+            if mods & Qt.KeyboardModifier.MetaModifier:
+                keys.append("win")
+                
+            if key in [
+                Qt.Key.Key_Control, Qt.Key.Key_Shift, 
+                Qt.Key.Key_Alt, Qt.Key.Key_Meta
+            ]:
+                return
+                
+            key_str = self.map_key_to_keyboard(key)
+            if key_str:
+                keys.append(key_str)
+                
+            if keys:
+                hotkey_str = "+".join(keys)
+                self.is_recording_hotkey = False
+                self.hotkey_btn.setStyleSheet("")
+                self.hotkey_btn.setText(f"Hotkey: {hotkey_str}")
+                self.hotkey_changed.emit(hotkey_str)
+                event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def map_key_to_keyboard(self, key):
+        if Qt.Key.Key_A <= key <= Qt.Key.Key_Z:
+            return chr(key).lower()
+        if Qt.Key.Key_0 <= key <= Qt.Key.Key_9:
+            return chr(key)
+            
+        if Qt.Key.Key_F1 <= key <= Qt.Key.Key_F12:
+            return f"f{key - Qt.Key.Key_F1 + 1}"
+            
+        key_map = {
+            Qt.Key.Key_Space: "space",
+            Qt.Key.Key_Return: "enter",
+            Qt.Key.Key_Enter: "enter",
+            Qt.Key.Key_Tab: "tab",
+            Qt.Key.Key_Backspace: "backspace",
+            Qt.Key.Key_Delete: "delete",
+            Qt.Key.Key_Insert: "insert",
+            Qt.Key.Key_Home: "home",
+            Qt.Key.Key_End: "end",
+            Qt.Key.Key_PageUp: "page up",
+            Qt.Key.Key_PageDown: "page down",
+            Qt.Key.Key_Left: "left",
+            Qt.Key.Key_Right: "right",
+            Qt.Key.Key_Up: "up",
+            Qt.Key.Key_Down: "down",
+            Qt.Key.Key_CapsLock: "caps lock",
+            Qt.Key.Key_ScrollLock: "scroll lock",
+            Qt.Key.Key_NumLock: "num lock",
+            Qt.Key.Key_Print: "print screen",
+            Qt.Key.Key_Pause: "pause",
+        }
+        return key_map.get(key, None)
 
     def update_moves(self, phase, all_moves, current_index):
         # Update phase label
