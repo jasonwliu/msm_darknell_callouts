@@ -153,3 +153,24 @@ def test_voice_command_shock_mappings():
     assert engine.get_next_moves()[0] == "Push"
 
 
+def test_voice_command_stun_skip_with_history():
+    engine = RotationEngine()
+    engine.set_phase(2)
+    
+    # 1. Process "dive" (advances index to 1)
+    engine.process_voice_command("dive")
+    # 2. Process "buff" (advances index to 2)
+    engine.process_voice_command("buff")
+    
+    # Next expected is index 2 ("Charge"). History contains "dive" and "buff".
+    # Say "stun", then "dive" (skips Charge, Push, Dash, Meteor to go to index 6 "Dive")
+    changed_stun, msg_stun = engine.process_voice_command("stun")
+    assert changed_stun
+    assert engine.stun_flag == True
+    
+    changed, msg = engine.process_voice_command("dive")
+    assert changed
+    assert "Stun detected" in msg
+    assert engine.index == 7  # next expected is index 7 ("Buff")
+
+

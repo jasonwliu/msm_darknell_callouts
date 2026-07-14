@@ -133,7 +133,7 @@ class RotationEngine:
         # 4. Check for recently executed move filter (lookahead repeat suppression)
         # We only check this if the spoken word is NOT the immediate next expected move.
         is_next_move = (w == rotation[self.index].lower())
-        if not is_next_move:
+        if not is_next_move and not self.stun_flag:
             if w in self.executed_history:
                 return False, f"Ignored repeat: '{w}' matches a recently executed move"
 
