@@ -21,3 +21,6 @@ venv/
 .venv/
 env/
 ENV/
+
+# Deep learning dataset
+dataset/
