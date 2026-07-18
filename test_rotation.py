@@ -74,18 +74,65 @@ def test_voice_command_manual_phase():
     assert engine.index == 0
     assert engine.get_next_moves()[0] == "Dive"
 
-def test_voice_command_pattern_phase():
+def test_phase2_transition_fly_out_of_sequence():
     engine = RotationEngine()
-    # We are in Phase 1.
-    # Phase 2 starts with Dive, Buff, Charge, Push.
-    # If we say "charge", it's not in Phase 1's skip window.
-    # It should transition to Phase 2, and set index to 3 (after Charge, which is Push).
-    changed, msg = engine.process_voice_command("charge")
+    # We are in Phase 1 (index 0). Next expected move is Meteor.
+    # User says "dive" (Fly) which is out of sequence.
+    # It should NOT transition to Phase 2.
+    changed, msg = engine.process_voice_command("dive")
+    assert not changed
+    assert engine.phase == 1
+    assert engine.index == 0
+
+def test_phase2_transition_fly_in_sequence_not_end():
+    engine = RotationEngine()
+    # Let's advance to index 4 in Phase 1 (expected move: Dive)
+    # P1 rotation: ["Meteor", "Push", "Buff", "Dash", "Dive", ...]
+    engine.process_voice_command("meteor")
+    engine.process_voice_command("push")
+    engine.process_voice_command("buff")
+    engine.process_voice_command("dash")
+    assert engine.index == 4
+    assert engine.get_next_moves()[0] == "Dive"
+    
+    # User says "dive" which is in sequence
+    changed, msg = engine.process_voice_command("dive")
+    assert changed
+    # It should NOT transition to Phase 2 because it was in sequence and not at the end
+    assert engine.phase == 1
+    assert engine.index == 5
+    assert engine.get_next_moves()[0] == "Meteor"
+
+def test_phase2_transition_fly_in_sequence_end():
+    engine = RotationEngine()
+    # Let's advance to index 14 in Phase 1 (expected move: Dive)
+    # P1 rotation: ["Meteor", "Push", "Buff", "Dash", "Dive", "Meteor", "Buff", "Push", "Dive", "Dash", "Meteor", "Push", "Dash", "Buff", "Dive"]
+    # Let's manually set index to 14 to make it simple
+    engine.index = 14
+    assert engine.get_next_moves()[0] == "Dive"
+    
+    # User says "dive" (Fly) which is in sequence but at the end of the phase
+    changed, msg = engine.process_voice_command("dive")
+    assert changed
+    # It should NOT transition to Phase 2, but instead loop back to index 0 of Phase 1
+    assert engine.phase == 1
+    assert engine.index == 0
+    assert engine.get_next_moves()[0] == "Meteor"
+
+def test_phase2_transition_manual():
+    engine = RotationEngine()
+    changed, msg = engine.process_voice_command("p2")
     assert changed
     assert engine.phase == 2
-    assert engine.index == 3
-    assert engine.get_next_moves()[0] == "Push"
-    print("Pattern phase test passed:", msg)
+    assert engine.index == 0
+
+def test_phase2_no_transition_on_charge():
+    engine = RotationEngine()
+    # Saying "charge" should not transition to Phase 2 anymore
+    changed, msg = engine.process_voice_command("charge")
+    assert not changed
+    assert engine.phase == 1
+    assert engine.index == 0
 
 def test_voice_command_repeat_ignore():
     engine = RotationEngine()

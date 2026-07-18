@@ -122,13 +122,15 @@ class RotationEngine:
             self.stun_flag = True
             return True, "Stun skip mode enabled. Speak the move you see next."
 
+        rotation = self.get_current_rotation()
+        n = len(rotation)
+
+
+
         # Check if it is a valid move name
         valid_moves = {"meteor", "push", "buff", "dash", "dive", "charge"}
         if w not in valid_moves:
             return False, "Unrecognized command or out of skip range"
-
-        rotation = self.get_current_rotation()
-        n = len(rotation)
 
         # 4. Check for recently executed move filter (lookahead repeat suppression)
         # We only check this if the spoken word is NOT the immediate next expected move.
@@ -174,14 +176,13 @@ class RotationEngine:
                     self.stun_flag = False
                     return True, f"Stun detected! Skipped {offset} move(s), advanced to: {rotation[self.index]}"
 
-        # 8. Pattern-based next phase transition
+        # 8. Pattern-based next phase transition (restricted to Phase 3 and Phase 4)
         next_phase = self.phase + 1
-        if next_phase <= 4:
+        if next_phase <= 4 and next_phase != 2:
             next_rotation = self.rotations[next_phase]
             is_near_end = (self.index >= n - 4)
-            is_unique_trigger = (w == "charge" and self.phase == 1)
             
-            if is_near_end or is_unique_trigger:
+            if is_near_end:
                 for i in range(min(3, len(next_rotation))):
                     if w == next_rotation[i].lower():
                         self.phase = next_phase

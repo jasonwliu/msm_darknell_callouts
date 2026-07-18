@@ -249,7 +249,6 @@ class VoiceThread(QThread):
                     "push": "push",
                     "buff": "buff",
                     "dash": "dash",
-                    "fly": "dive",
                     "dive": "dive",
                     "charge": "charge",
                     "shock": "charge",

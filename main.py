@@ -104,6 +104,7 @@ class MainApp:
         self.overlay.reset_rotation.connect(self.reset_moves)
         self.overlay.hotkey_changed.connect(self.update_hotkey)
         self.overlay.scroll_moves_changed.connect(self.update_scroll_setting)
+        self.overlay.move_clicked.connect(self.handle_move_clicked)
 
         # Setup background threads
         self.voice_thread = None
@@ -223,6 +224,8 @@ class MainApp:
             self.overlay.set_status(msg, "#88ff88")
 
     def auto_phase_transition(self, new_phase):
+        if new_phase == 2:
+            return
         if self.rotation.set_phase(new_phase):
             self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
             self.overlay.set_status(f"HP Boundary: Switched to Phase {new_phase}!", "#ffaa00")
@@ -236,6 +239,12 @@ class MainApp:
         self.rotation.reset()
         self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
         self.overlay.set_status("Rotation reset", "#00ffff")
+
+    def handle_move_clicked(self, index):
+        if self.overlay.is_interactive:
+            self.rotation.index = index
+            self.overlay.update_moves(self.rotation.phase, self.rotation.get_current_rotation(), self.rotation.index)
+            self.overlay.set_status(f"Clicked: Set next move to {self.rotation.get_current_rotation()[index]}", "#88ff88")
 
     def start_calibration(self):
         # Open calibration full screen selector

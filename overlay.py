@@ -9,6 +9,13 @@ import pyaudiowpatch as pyaudio
 from PIL import ImageGrab
 import config
 
+class ClickableLabel(QLabel):
+    clicked = pyqtSignal()
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
 class CalibrationWindow(QWidget):
     calibration_complete = pyqtSignal(list, list)  # Emits (region, color)
 
@@ -105,6 +112,7 @@ class OverlayWindow(QWidget):
     reset_rotation = pyqtSignal()
     hotkey_changed = pyqtSignal(str)
     scroll_moves_changed = pyqtSignal(bool)
+    move_clicked = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -122,7 +130,7 @@ class OverlayWindow(QWidget):
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint | 
             Qt.WindowType.WindowStaysOnTopHint | 
-            Qt.WindowType.Tool
+            Qt.WindowType.Window
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
@@ -477,8 +485,12 @@ class OverlayWindow(QWidget):
                 is_current = (offset == 0)
                 is_prominent = (1 <= offset <= 3)
                 
-                lbl = QLabel(move)
+                lbl = ClickableLabel(move)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if self.is_interactive:
+                    lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+                lbl.clicked.connect(lambda checked=False, x=idx: self.move_clicked.emit(x))
+                
                 if is_current:
                     lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
                     lbl.setText(f"➔ {move}")
@@ -495,8 +507,12 @@ class OverlayWindow(QWidget):
                 relative_offset = (idx - current_index) % n
                 is_prominent = (1 <= relative_offset <= 3)
                 
-                lbl = QLabel(move)
+                lbl = ClickableLabel(move)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                if self.is_interactive:
+                    lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+                lbl.clicked.connect(lambda checked=False, x=idx: self.move_clicked.emit(x))
+                
                 if is_current:
                     lbl.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 2px;")
                     lbl.setText(f"➔ {move}")
@@ -530,7 +546,7 @@ class OverlayWindow(QWidget):
             self.setWindowFlags(
                 Qt.WindowType.FramelessWindowHint | 
                 Qt.WindowType.WindowStaysOnTopHint | 
-                Qt.WindowType.Tool
+                Qt.WindowType.Window
             )
             # Styling for Setup Mode
             self.setStyleSheet("""
@@ -574,7 +590,7 @@ class OverlayWindow(QWidget):
                 Qt.WindowType.FramelessWindowHint | 
                 Qt.WindowType.WindowStaysOnTopHint | 
                 Qt.WindowType.WindowTransparentForInput | 
-                Qt.WindowType.Tool
+                Qt.WindowType.Window
             )
             # Styling for HUD mode (slight dark background for contrast, rounded corners, still click-through)
             self.setStyleSheet("""

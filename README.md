@@ -148,3 +148,12 @@ darknell_callouts/
 ### Voice Commands Not Recognized
 - Confirm the correct microphone device is selected in Setup Mode.
 - Speak clearly into the microphone. Since the recognizer is offline, it performs best when microphone gain is balanced and background noise is minimal.
+
+### Overlay Shows Up as All Black in OBS
+- **Change Capture Method in OBS**:
+  1. Double-click your **Window Capture** source in OBS to open its properties.
+  2. Locate the **Capture Method** dropdown.
+  3. Change it from **Automatic** to **Windows 10 (1903 and up)** (this utilizes the modern Windows Graphics Capture API).
+  4. The black background will immediately disappear, capturing the overlay with its native, semi-transparent alpha background correctly.
+- **Run OBS as Administrator**: If the window capture is still blank, right-click OBS and select **Run as administrator** to ensure OBS has permissions to hook window frames.
+- **Match GPU Preference**: In Windows Settings -> Graphics, make sure both OBS Studio and the helper executable are set to run on the same graphics processor.
