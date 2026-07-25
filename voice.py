@@ -141,7 +141,7 @@ class VoiceThread(QThread):
 
         # Setup strict vocabulary to boost accuracy
         words = [
-            "meteor", "push", "buff", "dash", "dive", "charge",
+            "meteor", "push", "buff", "dash", "dive", "short", "long", "ultimate", "charge",
             "shock", "shockwave",
             "phase", "one", "two", "three", "four",
             "reset", "stun", "stunned", "stop", "[unk]"
@@ -244,15 +244,21 @@ class VoiceThread(QThread):
             elif "phase four" in text_norm:
                 self.command_recognized.emit("p4")
             else:
+                text_norm = text_norm.replace("short dive", "short_dive")
+                text_norm = text_norm.replace("long dive", "long_dive")
+                
                 mapping = {
                     "meteor": "meteor",
                     "push": "push",
                     "buff": "buff",
                     "dash": "dash",
                     "dive": "dive",
-                    "charge": "charge",
-                    "shock": "charge",
-                    "shockwave": "charge",
+                    "short_dive": "short dive",
+                    "long_dive": "long dive",
+                    "ultimate": "ultimate",
+                    "charge": "ultimate",
+                    "shock": "ultimate",
+                    "shockwave": "ultimate",
                     "reset": "reset",
                     "stun": "stun",
                     "stunned": "stunned"

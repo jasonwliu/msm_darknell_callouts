@@ -73,9 +73,9 @@ async def main():
     
     checkpoints = {
         "Presence check (8%)": int(0.08 * w),
-        "Phase 4 check (23%)": int(0.23 * w),
+        "Phase 4 check (36%)": int(0.36 * w),
         "Phase 3 check (65%)": int(0.65 * w),
-        "Phase 2 check (77%)": int(0.77 * w)
+        "Phase 2 check (73%)": int(0.73 * w)
     }
     
     for name, cx in checkpoints.items():

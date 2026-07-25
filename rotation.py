@@ -2,9 +2,9 @@ class RotationEngine:
     def __init__(self):
         self.rotations = {
             1: ["Meteor", "Push", "Buff", "Dash", "Dive", "Meteor", "Buff", "Push", "Dive", "Dash", "Meteor", "Push", "Dash", "Buff", "Dive"],
-            2: ["Dive", "Buff", "Charge", "Push", "Dash", "Meteor", "Dive", "Buff", "Dash", "Push", "Charge", "Meteor"],
-            3: ["Dive", "Meteor", "Push", "Dash", "Dive", "Buff", "Charge", "Meteor", "Push", "Dash", "Buff"],
-            4: ["Meteor", "Buff", "Push", "Dash", "Charge", "Dive", "Meteor", "Push", "Buff", "Charge", "Dash", "Dive"]
+            2: ["Dive", "Buff", "Ultimate", "Push", "Dash", "Meteor", "Dive", "Buff", "Dash", "Push", "Ultimate", "Meteor"],
+            3: ["Short Dive", "Meteor", "Push", "Dash", "Long Dive", "Buff", "Ultimate", "Meteor", "Push", "Dash", "Buff"],
+            4: ["Meteor", "Buff", "Push", "Dash", "Ultimate", "Dive", "Meteor", "Push", "Buff", "Ultimate", "Dash", "Dive"]
         }
         self.phase = 1
         self.index = 0
@@ -62,7 +62,12 @@ class RotationEngine:
             for i in range(n):
                 match = True
                 for j in range(k):
-                    if rotation[(i + j) % n].lower() != seq[j]:
+                    rot_move = rotation[(i + j) % n].lower()
+                    seq_move = seq[j]
+                    if rot_move != seq_move and not (
+                        (seq_move == "dive" and rot_move in ["short dive", "long dive"]) or
+                        (seq_move in ["short dive", "long dive"] and rot_move == "dive")
+                    ):
                         match = False
                         break
                 if match:
@@ -95,8 +100,8 @@ class RotationEngine:
         Returns: (state_changed, message)
         """
         w = word.lower().strip()
-        if w in ["shock", "shockwave"]:
-            w = "charge"
+        if w in ["charge", "shock", "shockwave"]:
+            w = "ultimate"
         
         # 1. Manual phase override commands
         if w in ["phase one", "p_one", "p1"]:
@@ -128,15 +133,21 @@ class RotationEngine:
 
 
         # Check if it is a valid move name
-        valid_moves = {"meteor", "push", "buff", "dash", "dive", "charge"}
+        valid_moves = {"meteor", "push", "buff", "dash", "dive", "short dive", "long dive", "ultimate"}
         if w not in valid_moves:
             return False, "Unrecognized command or out of skip range"
 
         # 4. Check for recently executed move filter (lookahead repeat suppression)
         # We only check this if the spoken word is NOT the immediate next expected move.
-        is_next_move = (w == rotation[self.index].lower())
+        expected_move = rotation[self.index].lower()
+        is_next_move = (w == expected_move) or \
+                       (w == "dive" and expected_move in ["short dive", "long dive"]) or \
+                       (w in ["short dive", "long dive"] and expected_move == "dive")
+
         if not is_next_move and not self.stun_flag:
-            if w in self.executed_history:
+            if w in self.executed_history or \
+               (w in ["short dive", "long dive"] and "dive" in self.executed_history) or \
+               (w == "dive" and any(x in self.executed_history for x in ["short dive", "long dive"])):
                 return False, f"Ignored repeat: '{w}' matches a recently executed move"
 
         # Append to history
@@ -156,7 +167,7 @@ class RotationEngine:
 
         # 6. Immediate match (offset == 0)
         if is_next_move:
-            self.executed_history.append(w)
+            self.executed_history.append(expected_move)
             if len(self.executed_history) > 3:
                 self.executed_history.pop(0)
             self.index = (self.index + 1) % n

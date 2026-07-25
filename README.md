@@ -17,7 +17,7 @@ A real-time, transparent desktop HUD overlay designed to assist MapleStory M pla
   - **Auto-Cropping Leniency**: Automatically finds the exact bounds of the nameplate box within the calibrated region, absorbing user margin drawing errors.
   - **No-OCR Green Density Scanning**: Runs a vertical pixel-density hue scanner that is immune to centered text overlays ("Guard Captain Darknell"), resolution scaling, or accidental click calibrations.
   - **Lobby/Death Detection**: Detects if you are in a lobby, loading screen, or town, and pauses tracking automatically until the green HP bar appears.
-  - **Phase Transition Boundaries**: Checked dynamically at 35% (in the "d" of Guard), 65% (between "ar" in Darknell), and 75% (in the "e" of Darknell) of the nameplate width (visualized on the calibration image in the Setup section below).
+  - **Phase Transition Boundaries**: Checked dynamically at 36% (in the "d" of Guard), 65% (between "ar" in Darknell), and 73% (at the left corner of "e" in Darknell) of the nameplate width (visualized on the calibration image in the Setup section below).
 - **⌨️ System-Wide Global Hotkey**: Press `Ctrl+Shift+U` at any time (even while in-game) to toggle between **HUD Mode** (click-through, stays-on-top) and **Setup Mode** (draggable, buttons and audio configurations active).
 
 ---
@@ -86,10 +86,10 @@ Refer to the diagram below to see exactly where the boundaries align:
 
 ![HP Phase Boundaries Guide](hp_bar_example.png)
 
-- **Phase 1 (100% - 75% HP)**: Initial phase.
-- **Phase 2 (75% - 65% HP)**: Starts once the green HP drops past **75%** (positioned exactly in the `"e"` in `"Darknell"`).
-- **Phase 3 (65% - 35% HP)**: Starts once the green HP drops past **65%** (positioned exactly between the `"a"` and `"r"` in `"Darknell"`).
-- **Phase 4 (35% - 0% HP)**: Starts once the green HP drops past **35%** (positioned exactly in the `"d"` in `"Guard"`).
+- **Phase 1 (100% - 73% HP)**: Initial phase.
+- **Phase 2 (73% - 65% HP)**: Starts once the green HP drops past **73%** (positioned exactly at the left corner of `"e"` in `"Darknell"`).
+- **Phase 3 (65% - 36% HP)**: Starts once the green HP drops past **65%** (positioned exactly between the `"a"` and `"r"` in `"Darknell"`).
+- **Phase 4 (36% - 0% HP)**: Starts once the green HP drops past **36%** (positioned exactly in the `"d"` in `"Guard"`).
 
 ---
 

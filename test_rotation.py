@@ -128,8 +128,8 @@ def test_phase2_transition_manual():
 
 def test_phase2_no_transition_on_charge():
     engine = RotationEngine()
-    # Saying "charge" should not transition to Phase 2 anymore
-    changed, msg = engine.process_voice_command("charge")
+    # Saying "ultimate" should not transition to Phase 2 anymore
+    changed, msg = engine.process_voice_command("ultimate")
     assert not changed
     assert engine.phase == 1
     assert engine.index == 0
@@ -185,15 +185,15 @@ def test_voice_command_shock_mappings():
     engine = RotationEngine()
     # Go to Phase 2
     engine.set_phase(2)
-    # Next expected is Dive (index 0), then Buff (index 1), then Charge (index 2).
+    # Next expected is Dive (index 0), then Buff (index 1), then Ultimate (index 2).
     # Say "dive" (mapped from "fly"/"dive"): advances to 1 ("Buff")
     changed1, msg1 = engine.process_voice_command("dive")
     assert changed1
-    # Say "buff": advances to 2 ("Charge")
+    # Say "buff": advances to 2 ("Ultimate")
     changed2, msg2 = engine.process_voice_command("buff")
     assert changed2
     
-    # Try calling "shock" or "shockwave" (mapped to "charge"). Next is "Charge".
+    # Try calling "shock" or "shockwave" (mapped to "ultimate"). Next is "Ultimate".
     changed3, msg3 = engine.process_voice_command("shock")
     assert changed3
     assert engine.index == 3  # next is Push
@@ -209,8 +209,8 @@ def test_voice_command_stun_skip_with_history():
     # 2. Process "buff" (advances index to 2)
     engine.process_voice_command("buff")
     
-    # Next expected is index 2 ("Charge"). History contains "dive" and "buff".
-    # Say "stun", then "dive" (skips Charge, Push, Dash, Meteor to go to index 6 "Dive")
+    # Next expected is index 2 ("Ultimate"). History contains "dive" and "buff".
+    # Say "stun", then "dive" (skips Ultimate, Push, Dash, Meteor to go to index 6 "Dive")
     changed_stun, msg_stun = engine.process_voice_command("stun")
     assert changed_stun
     assert engine.stun_flag == True
@@ -219,5 +219,51 @@ def test_voice_command_stun_skip_with_history():
     assert changed
     assert "Stun detected" in msg
     assert engine.index == 7  # next expected is index 7 ("Buff")
+
+
+def test_phase3_dives():
+    engine = RotationEngine()
+    engine.set_phase(3)
+    # P3 rotation: ["Short Dive", "Meteor", "Push", "Dash", "Long Dive", "Buff", "Ultimate", "Meteor", "Push", "Dash", "Buff"]
+    
+    # 1. Expected next is "Short Dive" (index 0). Saying "short dive" should match.
+    assert engine.get_next_moves()[0] == "Short Dive"
+    changed, msg = engine.process_voice_command("short dive")
+    assert changed
+    assert engine.index == 1
+    assert engine.get_next_moves()[0] == "Meteor"
+    
+    # Let's reset phase 3
+    engine = RotationEngine()
+    engine.set_phase(3)
+    # 2. Saying general "dive" should also match the expected "Short Dive"
+    changed, msg = engine.process_voice_command("dive")
+    assert changed
+    assert engine.index == 1
+    
+    # 3. Advance to index 4 ("Long Dive")
+    # moves: index 1 ("Meteor"), index 2 ("Push"), index 3 ("Dash")
+    engine.process_voice_command("meteor")
+    engine.process_voice_command("push")
+    engine.process_voice_command("dash")
+    assert engine.get_next_moves()[0] == "Long Dive"
+    
+    # Saying general "dive" should match the expected "Long Dive"
+    changed, msg = engine.process_voice_command("dive")
+    assert changed
+    assert engine.index == 5
+    assert engine.get_next_moves()[0] == "Buff"
+    
+    # Reset and test saying "long dive" on index 4
+    engine = RotationEngine()
+    engine.set_phase(3)
+    engine.process_voice_command("dive") # index 0
+    engine.process_voice_command("meteor") # index 1
+    engine.process_voice_command("push") # index 2
+    engine.process_voice_command("dash") # index 3
+    assert engine.get_next_moves()[0] == "Long Dive"
+    changed, msg = engine.process_voice_command("long dive")
+    assert changed
+    assert engine.index == 5
 
 

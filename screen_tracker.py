@@ -7,6 +7,7 @@ import numpy as np
 class ScreenTrackerThread(QThread):
     phase_changed = pyqtSignal(int)
     status_message = pyqtSignal(str)
+    bounds_detected = pyqtSignal(int, int)
 
     def __init__(self, config_loader_func):
         super().__init__()
@@ -128,18 +129,21 @@ class ScreenTrackerThread(QThread):
                 if not hp_bar_active:
                     # In lobby or boss is dead: clear history and skip phase detection
                     read_history.clear()
+                    self.bounds_detected.emit(-1, -1)
                     continue
                 
+                self.bounds_detected.emit(left, right)
+                
                 # Check column fill status at character-aligned landmarks relative to actual nameplate
-                # Phase 2: in the "e" in "Darknell" (~75% of nameplate width)
+                # Phase 2: at the left corner of "e" in "Darknell" (~73% of nameplate width)
                 # Phase 3: between "ar" in "Darknell" (~65% of nameplate width)
-                # Phase 4: in the "d" in "Guard" (~35% of nameplate width)
-                filled_p4 = self.check_column_filled(img, left + int(0.35 * actual_w), h, filled_color)
+                # Phase 4: in the "d" in "Guard" (~36% of nameplate width)
+                filled_p4 = self.check_column_filled(img, left + int(0.36 * actual_w), h, filled_color)
                 filled_p3 = self.check_column_filled(img, left + int(0.65 * actual_w), h, filled_color)
-                filled_p2 = self.check_column_filled(img, left + int(0.75 * actual_w), h, filled_color)
+                filled_p2 = self.check_column_filled(img, left + int(0.73 * actual_w), h, filled_color)
                 
                 # Log debug info to console (will appear in task logs)
-                print(f"[Tracker] Active={hp_bar_active} | p4(35%)={filled_p4} | p3(65%)={filled_p3} | p2(75%)={filled_p2}")
+                print(f"[Tracker] Active={hp_bar_active} | p4(36%)={filled_p4} | p3(65%)={filled_p3} | p2(73%)={filled_p2}")
                 
                 # Determine detected phase
                 if not filled_p4:

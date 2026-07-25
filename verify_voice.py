@@ -54,8 +54,8 @@ def test_microphone():
     model = Model(MODEL_DIR)
     
     # We define a grammar containing our MapleStory Darknell moves to make it highly accurate
-    # Valid words: meteor, push, buff, dash, fly, charge, phase, one, two, three, four, stun, stop, reset
-    words = ["meteor", "push", "buff", "dash", "fly", "charge", "phase", "one", "two", "three", "four", "stun", "stop", "reset", "[unk]"]
+    # Valid words: meteor, push, buff, dash, fly, ultimate, charge, phase, one, two, three, four, stun, stop, reset
+    words = ["meteor", "push", "buff", "dash", "fly", "ultimate", "charge", "phase", "one", "two", "three", "four", "stun", "stop", "reset", "[unk]"]
     grammar_str = json.dumps(words)
     
     rec = KaldiRecognizer(model, samplerate, grammar_str)
@@ -67,7 +67,7 @@ def test_microphone():
             print(status, file=sys.stderr)
         q.put(bytes(indata))
         
-    print("Listening... Speak some commands (e.g., 'meteor', 'push', 'buff', 'dash', 'fly', 'charge')")
+    print("Listening... Speak some commands (e.g., 'meteor', 'push', 'buff', 'dash', 'fly', 'ultimate')")
     print("We will listen for 15 seconds, then stop.")
     
     stream = sd.RawInputStream(samplerate=samplerate, blocksize=8000, device=None,

@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRect
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QComboBox, QFrame, QApplication, QCheckBox
@@ -15,6 +15,72 @@ class ClickableLabel(QLabel):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(event)
+
+class HPMarkersOverlay(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowTransparentForInput
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.left = 0
+        self.right = 0
+        self.has_bounds = False
+
+    def set_bounds(self, left, right):
+        self.left = left
+        self.right = right
+        self.has_bounds = True
+        self.update()
+
+    def clear_bounds(self):
+        self.has_bounds = False
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        w = self.width()
+        h = self.height() - 15
+        if w < 10 or h < 5:
+            return
+
+        if self.has_bounds and self.right > self.left:
+            left_x = self.left
+            actual_w = self.right - self.left + 1
+        else:
+            left_x = 0
+            actual_w = w
+
+        x4 = left_x + int(0.36 * actual_w)
+        x3 = left_x + int(0.65 * actual_w)
+        x2 = left_x + int(0.73 * actual_w)
+
+        # Draw vertical lines
+        pen = QPen(QColor(255, 0, 0, 180), 2)
+        painter.setPen(pen)
+        for x in [x4, x3, x2]:
+            painter.drawLine(x, 0, x, h)
+
+        # Draw text labels
+        font = QFont("Segoe UI", 9, QFont.Weight.Bold)
+        painter.setFont(font)
+        labels = [("P4", x4), ("P3", x3), ("P2", x2)]
+        for text, x in labels:
+            rect = QRect(x - 20, h, 40, 15)
+            # Outline
+            painter.setPen(QColor(0, 0, 0, 255))
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx != 0 or dy != 0:
+                        painter.drawText(rect.translated(dx, dy), Qt.AlignmentFlag.AlignCenter, text)
+            # Center text
+            painter.setPen(QColor(255, 80, 80, 255))
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
 
 class CalibrationWindow(QWidget):
     calibration_complete = pyqtSignal(list, list)  # Emits (region, color)
@@ -526,7 +592,7 @@ class OverlayWindow(QWidget):
         font = QFont("Segoe UI", 20, QFont.Weight.Bold)
         metrics = QFontMetrics(font)
         max_w = 0
-        all_possible_moves = ["Meteor", "Push", "Buff", "Dash", "Dive", "Charge", "Shock", "Shockwave"]
+        all_possible_moves = ["Meteor", "Push", "Buff", "Dash", "Dive", "Short Dive", "Long Dive", "Ultimate", "Shock", "Shockwave"]
         for move in all_possible_moves:
             text = f"➔ {move}"
             w = metrics.horizontalAdvance(text)
