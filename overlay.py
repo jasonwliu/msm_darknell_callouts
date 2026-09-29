@@ -16,72 +16,6 @@ class ClickableLabel(QLabel):
             self.clicked.emit()
         super().mousePressEvent(event)
 
-class HPMarkersOverlay(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool |
-            Qt.WindowType.WindowTransparentForInput
-        )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.left = 0
-        self.right = 0
-        self.has_bounds = False
-
-    def set_bounds(self, left, right):
-        self.left = left
-        self.right = right
-        self.has_bounds = True
-        self.update()
-
-    def clear_bounds(self):
-        self.has_bounds = False
-        self.update()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        w = self.width()
-        h = self.height() - 15
-        if w < 10 or h < 5:
-            return
-
-        if self.has_bounds and self.right > self.left:
-            left_x = self.left
-            actual_w = self.right - self.left + 1
-        else:
-            left_x = 0
-            actual_w = w
-
-        x4 = left_x + int(0.31 * actual_w)
-        x3 = left_x + int(0.65 * actual_w)
-        x2 = left_x + int(0.73 * actual_w)
-
-        # Draw vertical lines
-        pen = QPen(QColor(255, 0, 0, 180), 2)
-        painter.setPen(pen)
-        for x in [x4, x3, x2]:
-            painter.drawLine(x, 0, x, h)
-
-        # Draw text labels
-        font = QFont("Segoe UI", 9, QFont.Weight.Bold)
-        painter.setFont(font)
-        labels = [("P4", x4), ("P3", x3), ("P2", x2)]
-        for text, x in labels:
-            rect = QRect(x - 20, h, 40, 15)
-            # Outline
-            painter.setPen(QColor(0, 0, 0, 255))
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        painter.drawText(rect.translated(dx, dy), Qt.AlignmentFlag.AlignCenter, text)
-            # Center text
-            painter.setPen(QColor(255, 80, 80, 255))
-            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
-
 class CalibrationWindow(QWidget):
     calibration_complete = pyqtSignal(list, list)  # Emits (region, color)
 
@@ -179,7 +113,6 @@ class OverlayWindow(QWidget):
     hotkey_changed = pyqtSignal(str)
     scroll_moves_changed = pyqtSignal(bool)
     move_clicked = pyqtSignal(int)
-    show_markers_changed = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -305,12 +238,6 @@ class OverlayWindow(QWidget):
         self.scroll_checkbox.stateChanged.connect(self.on_scroll_setting_changed)
         self.control_layout.addWidget(self.scroll_checkbox)
 
-        # HP markers checkbox
-        self.markers_checkbox = QCheckBox("Show HP markers")
-        self.markers_checkbox.setStyleSheet("color: white; font-size: 11px; margin-top: 4px; margin-bottom: 4px;")
-        self.markers_checkbox.stateChanged.connect(self.on_markers_setting_changed)
-        self.control_layout.addWidget(self.markers_checkbox)
-
         self.populate_devices()
 
         # Hotkey / Lock Guide
@@ -421,10 +348,6 @@ class OverlayWindow(QWidget):
             # Select active scroll setting
             saved_scroll = cfg.get("scroll_moves", True)
             self.scroll_checkbox.setChecked(saved_scroll)
-
-            # Select active HP markers setting
-            saved_markers = cfg.get("show_hp_markers", True)
-            self.markers_checkbox.setChecked(saved_markers)
         finally:
             p.terminate()
 
@@ -444,9 +367,6 @@ class OverlayWindow(QWidget):
 
     def on_scroll_setting_changed(self, state):
         self.scroll_moves_changed.emit(self.scroll_checkbox.isChecked())
-
-    def on_markers_setting_changed(self, state):
-        self.show_markers_changed.emit(self.markers_checkbox.isChecked())
 
     def start_hotkey_recording(self):
         if self.is_recording_hotkey:

@@ -20,7 +20,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QAction
 from rotation import RotationEngine
-from overlay import OverlayWindow, CalibrationWindow, HPMarkersOverlay
+from overlay import OverlayWindow, CalibrationWindow
 from voice import VoiceThread
 from screen_tracker import ScreenTrackerThread
 
@@ -95,19 +95,6 @@ class MainApp:
             self.overlay.move(pos[0], pos[1])
         self.overlay.show()
 
-        # Instantiate HP markers overlay
-        self.markers_overlay = HPMarkersOverlay()
-        region = self.config_data.get("ocr_region")
-        if region:
-            x, y, w, h = region
-            self.markers_overlay.setGeometry(x, y, w, h + 15)
-        
-        self.show_hp_markers = self.config_data.get("show_hp_markers", True)
-        if self.show_hp_markers:
-            self.markers_overlay.show()
-        else:
-            self.markers_overlay.hide()
-
         # Connect GUI controls
         self.overlay.calibrate_requested.connect(self.start_calibration)
         self.overlay.mic_changed.connect(self.update_microphone)
@@ -118,7 +105,6 @@ class MainApp:
         self.overlay.hotkey_changed.connect(self.update_hotkey)
         self.overlay.scroll_moves_changed.connect(self.update_scroll_setting)
         self.overlay.move_clicked.connect(self.handle_move_clicked)
-        self.overlay.show_markers_changed.connect(self.update_show_markers)
 
         # Setup background threads
         self.voice_thread = None
@@ -163,12 +149,8 @@ class MainApp:
         self.overlay.set_interactive_mode(new_mode)
         if new_mode:
             self.overlay.set_status("Setup Mode (Move/Configure)", "#00ffff")
-            if self.show_hp_markers:
-                self.markers_overlay.show()
         else:
             self.overlay.set_status("HUD Active (Click-through)", "#88ff88")
-            if not self.markers_overlay.has_bounds or not self.show_hp_markers:
-                self.markers_overlay.hide()
 
     def update_hotkey(self, new_hotkey):
         self.config_data["hotkey"] = new_hotkey
@@ -214,7 +196,6 @@ class MainApp:
         self.tracker_thread = ScreenTrackerThread(config.load_config)
         self.tracker_thread.phase_changed.connect(self.auto_phase_transition)
         self.tracker_thread.status_message.connect(lambda msg: print(f"[Tracker] {msg}"))
-        self.tracker_thread.bounds_detected.connect(self.update_marker_bounds)
         self.tracker_thread.start()
 
     def update_microphone(self, mic_idx):
@@ -275,38 +256,6 @@ class MainApp:
         self.config_data["filled_hp_color"] = color
         config.save_config(self.config_data)
         self.overlay.set_status(f"Calibrated HP Bar: color={color}", "#88ff88")
-        
-        # Update HP markers overlay geometry
-        if hasattr(self, "markers_overlay"):
-            x, y, w, h = region
-            self.markers_overlay.setGeometry(x, y, w, h + 15)
-
-    def update_marker_bounds(self, left, right):
-        if not self.show_hp_markers:
-            self.markers_overlay.hide()
-            return
-
-        if left == -1 and right == -1:
-            if not self.overlay.is_interactive: # HUD Mode
-                self.markers_overlay.hide()
-            else: # Setup Mode
-                self.markers_overlay.clear_bounds()
-                self.markers_overlay.show()
-        else:
-            self.markers_overlay.set_bounds(left, right)
-            self.markers_overlay.show()
-
-    def update_show_markers(self, enabled):
-        self.show_hp_markers = enabled
-        self.config_data["show_hp_markers"] = enabled
-        config.save_config(self.config_data)
-        
-        if enabled:
-            if self.overlay.is_interactive or (hasattr(self, "tracker_thread") and self.tracker_thread and getattr(self.markers_overlay, "has_bounds", False)):
-                self.markers_overlay.show()
-        else:
-            self.markers_overlay.hide()
-
     def clean_up(self):
         # Hide tray icon
         if hasattr(self, "tray_icon"):

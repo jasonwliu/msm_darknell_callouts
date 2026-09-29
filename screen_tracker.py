@@ -7,7 +7,6 @@ import numpy as np
 class ScreenTrackerThread(QThread):
     phase_changed = pyqtSignal(int)
     status_message = pyqtSignal(str)
-    bounds_detected = pyqtSignal(int, int)
 
     def __init__(self, config_loader_func):
         super().__init__()
@@ -129,10 +128,7 @@ class ScreenTrackerThread(QThread):
                 if not hp_bar_active:
                     # In lobby or boss is dead: clear history and skip phase detection
                     read_history.clear()
-                    self.bounds_detected.emit(-1, -1)
                     continue
-                
-                self.bounds_detected.emit(left, right)
                 
                 # Check column fill status at character-aligned landmarks relative to actual nameplate
                 # Phase 2: at the left corner of "e" in "Darknell" (~73% of nameplate width)
