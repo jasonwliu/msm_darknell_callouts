@@ -101,7 +101,12 @@ class MainApp:
         if region:
             x, y, w, h = region
             self.markers_overlay.setGeometry(x, y, w, h + 15)
-        self.markers_overlay.show()
+        
+        self.show_hp_markers = self.config_data.get("show_hp_markers", True)
+        if self.show_hp_markers:
+            self.markers_overlay.show()
+        else:
+            self.markers_overlay.hide()
 
         # Connect GUI controls
         self.overlay.calibrate_requested.connect(self.start_calibration)
@@ -113,6 +118,7 @@ class MainApp:
         self.overlay.hotkey_changed.connect(self.update_hotkey)
         self.overlay.scroll_moves_changed.connect(self.update_scroll_setting)
         self.overlay.move_clicked.connect(self.handle_move_clicked)
+        self.overlay.show_markers_changed.connect(self.update_show_markers)
 
         # Setup background threads
         self.voice_thread = None
@@ -157,10 +163,11 @@ class MainApp:
         self.overlay.set_interactive_mode(new_mode)
         if new_mode:
             self.overlay.set_status("Setup Mode (Move/Configure)", "#00ffff")
-            self.markers_overlay.show()
+            if self.show_hp_markers:
+                self.markers_overlay.show()
         else:
             self.overlay.set_status("HUD Active (Click-through)", "#88ff88")
-            if not self.markers_overlay.has_bounds:
+            if not self.markers_overlay.has_bounds or not self.show_hp_markers:
                 self.markers_overlay.hide()
 
     def update_hotkey(self, new_hotkey):
@@ -275,6 +282,10 @@ class MainApp:
             self.markers_overlay.setGeometry(x, y, w, h + 15)
 
     def update_marker_bounds(self, left, right):
+        if not self.show_hp_markers:
+            self.markers_overlay.hide()
+            return
+
         if left == -1 and right == -1:
             if not self.overlay.is_interactive: # HUD Mode
                 self.markers_overlay.hide()
@@ -284,6 +295,17 @@ class MainApp:
         else:
             self.markers_overlay.set_bounds(left, right)
             self.markers_overlay.show()
+
+    def update_show_markers(self, enabled):
+        self.show_hp_markers = enabled
+        self.config_data["show_hp_markers"] = enabled
+        config.save_config(self.config_data)
+        
+        if enabled:
+            if self.overlay.is_interactive or (hasattr(self, "tracker_thread") and self.tracker_thread and getattr(self.markers_overlay, "has_bounds", False)):
+                self.markers_overlay.show()
+        else:
+            self.markers_overlay.hide()
 
     def clean_up(self):
         # Hide tray icon

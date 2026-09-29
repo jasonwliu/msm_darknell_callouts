@@ -56,7 +56,7 @@ class HPMarkersOverlay(QWidget):
             left_x = 0
             actual_w = w
 
-        x4 = left_x + int(0.36 * actual_w)
+        x4 = left_x + int(0.31 * actual_w)
         x3 = left_x + int(0.65 * actual_w)
         x2 = left_x + int(0.73 * actual_w)
 
@@ -179,6 +179,7 @@ class OverlayWindow(QWidget):
     hotkey_changed = pyqtSignal(str)
     scroll_moves_changed = pyqtSignal(bool)
     move_clicked = pyqtSignal(int)
+    show_markers_changed = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
@@ -304,6 +305,12 @@ class OverlayWindow(QWidget):
         self.scroll_checkbox.stateChanged.connect(self.on_scroll_setting_changed)
         self.control_layout.addWidget(self.scroll_checkbox)
 
+        # HP markers checkbox
+        self.markers_checkbox = QCheckBox("Show HP markers")
+        self.markers_checkbox.setStyleSheet("color: white; font-size: 11px; margin-top: 4px; margin-bottom: 4px;")
+        self.markers_checkbox.stateChanged.connect(self.on_markers_setting_changed)
+        self.control_layout.addWidget(self.markers_checkbox)
+
         self.populate_devices()
 
         # Hotkey / Lock Guide
@@ -414,6 +421,10 @@ class OverlayWindow(QWidget):
             # Select active scroll setting
             saved_scroll = cfg.get("scroll_moves", True)
             self.scroll_checkbox.setChecked(saved_scroll)
+
+            # Select active HP markers setting
+            saved_markers = cfg.get("show_hp_markers", True)
+            self.markers_checkbox.setChecked(saved_markers)
         finally:
             p.terminate()
 
@@ -433,6 +444,9 @@ class OverlayWindow(QWidget):
 
     def on_scroll_setting_changed(self, state):
         self.scroll_moves_changed.emit(self.scroll_checkbox.isChecked())
+
+    def on_markers_setting_changed(self, state):
+        self.show_markers_changed.emit(self.markers_checkbox.isChecked())
 
     def start_hotkey_recording(self):
         if self.is_recording_hotkey:
